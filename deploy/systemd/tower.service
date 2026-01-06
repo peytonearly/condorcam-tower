@@ -1,0 +1,12 @@
+[Unit]
+Description=Tower Control Script
+After=network.target pigpiod.service
+
+[Service]
+ExecStart=/home/pi/tower/env/bin/python /home/pi/tower/main.py
+WorkingDirectory=/home/pi/tower
+Restart=always
+User=pi
+
+[Install]
+WantedBy=multi-user.target

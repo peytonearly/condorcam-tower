@@ -1,0 +1,37 @@
+.program quadrature
+; Base pin = A, reads two pins [A,B]
+; Pushes new 2-bit A/B whenever either pin changes
+
+; One-time init: capture initial A/B in X
+init:
+    mov isr, null
+    in pins, 2
+    mov x, isr
+    jmp main_loop
+
+.wrap_target
+main_loop:
+    mov isr, null
+    in pins, 2
+    mov y, isr
+    jmp x!=y, changed
+    jmp main_loop
+
+changed:
+    mov isr, y
+    push block
+    mov x, y
+    jmp main_loop
+.wrap
+
+% c-sdk {
+static inline void quadrature_program_init(PIO pio, uint sm, uint offset, uint pin_a) {
+    pio_sm_config c = quadrature_program_get_default_config(offset);
+    sm_config_set_in_pins(&c, pin_a);
+    // IMPORTANT: autopush = false (2nd arg), threshold ignored
+    sm_config_set_in_shift(&c, /*shift_right=*/false, /*autopush=*/false, 32);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_NONE);
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}
