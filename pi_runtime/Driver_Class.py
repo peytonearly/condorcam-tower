@@ -305,6 +305,7 @@ class AF160:
             self.steering_command = f"@1st{self.steering_input_scaled}\r".encode("ascii")
             self.driver.write(self.steering_command)
             self.driver.flush()
+            time.sleep(0.01)
         
     def _send_command(self, command):
         """

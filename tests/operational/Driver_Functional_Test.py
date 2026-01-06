@@ -1,5 +1,7 @@
 # === Import Libraries === #
 # Python libraries
+import time
+import sys
 import os
 import logging
 import signal
@@ -7,12 +9,12 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 
 # Custom classes
-from Driver_Class import AF160, AF160_with_Encoder
+from Driver_Class import AF160
 # === #
 
 # === Global Variables === #
 signal_received = False  # Tracks if a signal has been received
-console_logging = True  # Indicates if the logger should output to the console
+console_logging = False  # Indicates if the logger should output to the console
 # === #
 
 # === Helpers === #
@@ -32,19 +34,19 @@ def setup_logging():
     """
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
-    
+
     # Formatter
     formatter = MicrosecondFormatter(
         fmt="%(asctime)s [ %(levelname)s ] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S.%f"
     )
-    
+
     # Rotating file handler (5 files, 100 MB each)
     file_handler = RotatingFileHandler("logs/system.log", maxBytes=100_000_000, backupCount=5)
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
-    
+
     # Create console handler if specified
     global console_logging
     if console_logging:
@@ -72,41 +74,57 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     
-    # Create class instance
+    # Class instatiation
     driver = AF160()
     
-    # Initialize runtime variables
-    driver_throttle = 0  # Initialize throttle speed value
+    # Runtime variables
+    driver_speed = 0  # Initialize driver speed value
     count = 0  # Track number of loops at a given speed
     count_dir = 1  # Track direction of speed change
+    INPUT_LIMIT = 0.5  # Input speed limit
+    COUNT_LIMIT = 100  # Count limit for holding speed value
     
-    # Main loop
+    # Test loop
     try:
         logging.info("Beginning loop")
         while not signal_received:
-            if count < 249:
-                # Keep current speed for 250 counts
+            # Determine speed based on count
+            if count < (COUNT_LIMIT - 1):
+                # Keep current speed for COUNT_LIMIT counts
                 count += 1
             else:
                 count = 0
-                # Increment throttle input. Keep between -0.25 and 0.25
-                if abs(driver_throttle) < 0.50:
-                    driver_throttle += 0.01 * count_dir  # 1% increments
+                # Increment driver inputs. Keep inside [-INPUT_LIMIT, INPUT_LIMIT]
+                if abs(driver_speed) < INPUT_LIMIT:
+                    driver_speed += 0.01 * count_dir  # 1% increments
                 else:
                     count_dir *= -1  # Reverse direction
-                    driver_throttle += 0.01 * count_dir
-
-                # Send motor command
-                print(f"Input to motor: {driver_throttle * 100}%")
-                driver.send_payloads(0, driver_throttle)
+                    driver_speed += 0.01 * count_dir
                 
-            # Log debug values
-            driver.log_debug_values()
+                # Send motor command
+                driver.send_payloads(driver_speed, driver_speed)
+                print(f"Desired Speed (raw) | Left: {driver_speed * 100}% | Right: {driver_speed * 100}%")
+                print(f"Desired Speed (scaled) | Left: {driver.throttle_input_scaled} | Right: {driver.steering_input_scaled}")
+            
+                # --- Collect current speed values --- #
+                # Left motor speed
+                driver._send_command(f"@0gt\r".encode("ascii"))
+                left_actual = driver.response
+                
+                # Right motor speed
+                driver._send_command(f"@1gt\r".encode("ascii"))
+                right_actual = driver.response
+                
+                print(f"Actual Speed | Left: {left_actual} | Right: {right_actual}")
+                # --- #
+                
+                sys.stdout.write("\033[F" * 3)
     finally:
         if signal_received:
             logging.warning("Interrupt signal received. Closing program.")
+            print("Interrupt signal received. Closing...")
         driver.disconnect_driver()
-        logging.info("Clean shutdown complete")
+        logging.info("Clean shutdown complete.")
         
 if __name__ == "__main__":
     main()
