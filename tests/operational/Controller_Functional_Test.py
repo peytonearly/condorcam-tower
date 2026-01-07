@@ -113,7 +113,7 @@ def main():
             # Log debug values
             tower.log_debug_values()
             
-            # Move cursor to overwrite (print-in-place)
+            # Move cursor to overwrite (print in-place)
             time.sleep(0.1)
             sys.stdout.write("\033[F" * 6)
     finally:
