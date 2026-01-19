@@ -1,3 +1,8 @@
+'''
+- Add functionality to AF160.get_driver_configuration() that sets registers to expected values before 
+    collecting current state.
+'''
+
 import pigpio
 import serial
 import logging
