@@ -496,7 +496,7 @@ class Tower_with_sled:
         self._steering_direction = 1  # Tracks which direction the sled moves per given steering input direction (1 or -1 multiplier)
         self._pedals_connected = False  # Indicates if the pedals are connected based on the channel 3 state. False/0 for off | True/1 for on
         self._ema_alpha_throttle = 0.5  # Throttle smoothing factor. Lower numbers are smoother, higher numbers are more responsive
-        self._ema_alpha_steering = 0.1  # Steering smoothing factor. Lower numbers are smoother, higher numbers are more responsive
+        self._ema_alpha_steering = 0.5  # Steering smoothing factor. Lower numbers are smoother, higher numbers are more responsive
 
         # PWM limits
         self._controller_throttle_neutral = [1500, 1975]  # Neutral throttle point [Controller, Foot Pedals]

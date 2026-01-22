@@ -85,10 +85,10 @@ def main():
     driver_speed = 0  # Initialize driver speed value
     count_dir = 1  # Track direction of speed change
     last_command_time = time.time()  # Track when last driver command was sent
-    SPEED_DELTA = 0.01  # [%] Amount of speed change per cycle.
+    SPEED_DELTA = 0.1  # [%] Amount of speed change per cycle.
     INPUT_LIMIT = 0.5  # Driver speed limiter
     LOOP_INTERVAL = 0.05  # Seconds per loop (20 Hz)
-    COMMAND_INTERVAL = 1.0  # Send new motor command every 1 second
+    COMMAND_INTERVAL = 10  # Send new motor command every 1 second
     
     # Test loop
     try:
@@ -112,11 +112,11 @@ def main():
             
             # --- Collect current speed values --- #
             # Left motor speed
-            driver._send_command(f"@0gt\r".encoder("ascii"))
+            driver._send_command(f"@0gt\r".encode("ascii"))
             left_actual = driver.response
             
             # Right motor speed
-            driver._send_command(f"@1gt\r".encoder("ascii"))
+            driver._send_command(f"@1gt\r".encode("ascii"))
             right_actual = driver.response
             # --- #
             
