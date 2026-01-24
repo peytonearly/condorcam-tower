@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# --- must run as root because we write /etc/systemd/system and call systemctl enable ---
+# ---- must run as root because we write /etc/systemd/system and call systemctl enable ----
 if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
-    echo "ERROR: Please run with sudo:"
-    echo "  sudo ./deploy/install_service.sh [options]"
-    exit 1
+  echo "ERROR: Please run with sudo:"
+  echo "  sudo ./deploy/install_service.sh [options]"
+  exit 1
 fi
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -25,81 +25,81 @@ Options:
 EOF
 }
 
-while [[ $# -g 0 ]]; do
-    case "$1" in
-        --service-name)
-            SERVICE_NAME="$2"
-            shift 2
-            ;;
-        --enable-pigpiod)
-            ENABLE_PIGPIOD="true"
-            shift
-            ;;
-        --no-override-execstart)
-            NO_OVERRIDE_EXECSTART="true"
-            shift
-            ;;
-        -h|--help)
-            usage
-            exit 0
-            ;;
-        *)
-            echo "Unknown option: $1"
-            usage
-            exit 1
-            ;;
-    esac
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --service-name)
+      SERVICE_NAME="$2"
+      shift 2
+      ;;
+    --enable-pigpiod)
+      ENABLE_PIGPIOD="true"
+      shift
+      ;;
+    --no-override-execstart)
+      NO_OVERRIDE_EXECSTART="true"
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      usage
+      exit 1
+      ;;
+  esac
 done
 
 UNIT="${SERVICE_NAME}.service"
-SYSTEMD_DIR="etc/systemd/system"
+SYSTEMD_DIR="/etc/systemd/system"
 DROPIN_DIR="${SYSTEMD_DIR}/${UNIT}.d"
 DROPIN_FILE="${DROPIN_DIR}/override.conf"
 
 have_unit_file() {
-    # systemctl output includes headers unless we suppress them
-    systemctl list-unit-files --type=service --no-legend 2>/dev/null | awk '{print $1}' | grep -qx "$1"
+  # systemctl output includes headers unless we suppress them
+  systemctl list-unit-files --type=service --no-legend 2>/dev/null | awk '{print $1}' | grep -qx "$1"
 }
 
 install_pigpio_via_apt() {
-    if command -v apt-get >/dev/null 2>&1; then
-        apt-get update
-        apt-get install -y pigpio
-        return 0
-    elif command -v apt >/dev/null 2>&1; then
-        apt update
-        apt install -y pigpio
-        return 0
-    else
-        echo "ERROR: Neither apt-get nor apt was found. Cannot install pigpio automatically."
-        return 1
-    fi
+  if command -v apt-get >/dev/null 2>&1; then
+    apt-get update
+    apt-get install -y pigpio
+    return 0
+  elif command -v apt >/dev/null 2>&1; then
+    apt update
+    apt install -y pigpio
+    return 0
+  else
+    echo "ERROR: Neither apt-get nor apt was found. Cannot install pigpio automatically."
+    return 1
+  fi
 }
 
 ensure_pigpiod() {
-    if have_unit_file "pigpiod.service"; then
-        echo "pigpiod.service is already present."
-        return 0
-    fi
+  if have_unit_file "pigpiod.service"; then
+    echo "pigpiod.service is already present."
+    return 0
+  fi
 
-    echo "pigpiod.service not found. Attempting to install pigpio (provides pigpiod on Raspberry Pi OS)..."
-    if ! install_pigpio_via_apt; then
-        return 1
-    fi
+  echo "pigpiod.service not found. Attempting to install pigpio (provides pigpiod on Raspberry Pi OS)..."
+  if ! install_pigpio_via_apt; then
+    return 1
+  fi
 
-    # Re-check for service after install
-    if have_unit_file "pigpiod.service"; then
-        echo "pigpiod.service is now present."
-        return 0
-    fi
+  # Re-check for service after install
+  if have_unit_file "pigpiod.service"; then
+    echo "pigpiod.service is now present."
+    return 0
+  fi
 
-    # If the daemon exists but no unit file, create one
-    if command -v pigpiod >/dev/null 2>&1; then
-        local pigpiod_bin
-        pigpiod_bin="$(command -v pigpiod)"
-        echo "pigpiod binary found at ${pigpiod_bin}, but pigpiod.service is missing. Creating a minimal systemd unit..."
+  # If the daemon exists but no unit file, create one
+  if command -v pigpiod >/dev/null 2>&1; then
+    local pigpiod_bin
+    pigpiod_bin="$(command -v pigpiod)"
+    echo "pigpiod binary found at ${pigpiod_bin}, but pigpiod.service is missing. Creating a minimal systemd unit..."
 
-        cat > "${SYSTEMD_DIR}/pigpiod.service" <<EOF
+    cat > "${SYSTEMD_DIR}/pigpiod.service" <<EOF
 [Unit]
 Description=Pigpio daemon
 After=network.target
@@ -114,55 +114,55 @@ Restart=on-failure
 WantedBy=multi-user.target
 EOF
 
-        systemctl daemon-reload
-        return 0
-    fi
+    systemctl daemon-reload
+    return 0
+  fi
 
-    echo "ERROR: pigpiod is still not available after installing pigpio."
-    echo "This can occur on some Debian/Trixie-based images where the pigpio *server* isn't packaged."
-    echo "Recommended: use Raspberry Pi OS, or install pigpio/pigpiod from source per upstream instructions."
-    return 1
+  echo "ERROR: pigpiod is still not available after installing pigpio."
+  echo "This can occur on some Debian/Trixie-based images where the pigpio *server* isn't packaged."
+  echo "Recommended: use Raspberry Pi OS, or install pigpio/pigpiod from source per upstream instructions."
+  return 1
 }
 
-# --- Locate tower service file in repo (prefer deploy/systemd, fallback to repo root) ---
+# ---- Locate tower service file in repo (prefer deploy/systemd, fallback to repo root) ----
 SRC_SERVICE=""
 if [[ -f "${REPO_ROOT}/deploy/systemd/${UNIT}" ]]; then
-    SRC_SERVICE="${REPO_ROOT}/deploy/systemd/${UNIT}"
+  SRC_SERVICE="${REPO_ROOT}/deploy/systemd/${UNIT}"
 elif [[ -f "${REPO_ROOT}/${UNIT}" ]]; then
-    SRC_SERVICE="${REPO_ROOT}/${UNIT}"
+  SRC_SERVICE="${REPO_ROOT}/${UNIT}"
 else
-    echo "ERROR: Could not find ${UNIT} in:"
-    echo "  - ${REPO_ROOT}/deploy/systemd/${UNIT}"
-    echo "  - ${REPO_ROOT}/${UNIT}"
-    exit 1
+  echo "ERROR: Could not find ${UNIT} in:"
+  echo "  - ${REPO_ROOT}/deploy/systemd/${UNIT}"
+  echo "  - ${REPO_ROOT}/${UNIT}"
+  exit 1
 fi
 
 echo "Repo root: ${REPO_ROOT}"
 echo "Installing ${UNIT} from: ${SRC_SERVICE}"
 
-# --- Ensure venv exists if we are overriding ExecStart to use it ---
+# ---- Ensure venv exists if we are overriding ExecStart to use it ----
 VENV_PY="${REPO_ROOT}/.venv/bin/python"
 if [[ "${NO_OVERRIDE_EXECSTART}" == "false" && ! -x "${VENV_PY}" ]]; then
-    echo "ERROR: Expected venv python at ${VENV_PY} buit it was not found/executable."
-    echo "Run: ./deploy/bootstrap_pi.sh"
-    exit 1
+  echo "ERROR: Expected venv python at ${VENV_PY} but it was not found/executable."
+  echo "Run: ./deploy/bootstrap_pi.sh"
+  exit 1
 fi
 
-# --- Install base unit ---
+# ---- Install base unit ----
 install -m 0644 "${SRC_SERVICE}" "${SYSTEMD_DIR}/${UNIT}"
 
-# --- Optionally install/enable pigpiod ---
+# ---- Optionally install/enable pigpiod ----
 if [[ "${ENABLE_PIGPIOD}" == "true" ]]; then
-    ensure_pigpiod
-    echo "Enabling/starting pigpiod.service..."
-    systemctl enable --now pigpiod.service
+  ensure_pigpiod
+  echo "Enabling/starting pigpiod.service..."
+  systemctl enable --now pigpiod.service
 fi
 
-# --- Drop-in override so the unit runs THIS checkout + THIS venv ---
+# ---- Drop-in override so the unit runs THIS checkout + THIS venv ----
 if [[ "${NO_OVERRIDE_EXECSTART}" == "false" ]]; then
-    echo "Writing drop-in override: ${DROPIN_FILE}"
-    mkdir -p "${DROPIN_DIR}"
-    cat > "${DROPIN_FILE}" <<EOF
+  echo "Writing drop-in override: ${DROPIN_FILE}"
+  mkdir -p "${DROPIN_DIR}"
+  cat > "${DROPIN_FILE}" <<EOF
 [Service]
 WorkingDirectory=${REPO_ROOT}
 Environment=PYTHONUNBUFFERED=1
