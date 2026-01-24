@@ -23,3 +23,9 @@ Python libraries required for operation:
 > requirements.txt
 
 ## Setup Instructions
+Clone repo:
+> git clone https://github.com/peytonearly/condorcam-tower
+> cd condorcam-tower/deploy
+> chmod +x bootstrap_pi.sh install_service.sh
+> ./bootstrap_pi.sh
+> ./install_service.sh
