@@ -3,7 +3,7 @@ from scp import SCPClient
 import os
 import sys
 import ctypes
-from CondorCam.Tower.Tower_Code.Updater.ssh_utils import get_ssh_client, run_remote_command
+from ssh_utils import get_ssh_client, run_remote_command
 
 def error_popup(message, title="Error"):
     """

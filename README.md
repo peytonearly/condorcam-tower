@@ -13,11 +13,8 @@ Pico firmware:
 Pi runtime scripts:
 > pi_runtime\
 
-Script functionality tests:
+Test scripts:
 > tests\scripts\
-
-Function/operational tests:
-> tests\operational\
 
 Updater and log downloader scripts:
 > tools\updater\
@@ -25,5 +22,4 @@ Updater and log downloader scripts:
 Python libraries required for operation:
 > requirements.txt
 
-## Test Instructions
-Test instructions and scripts are located in `tests\operational`. Please refer to the README.md in that folder for more detailed information.
+## Setup Instructions

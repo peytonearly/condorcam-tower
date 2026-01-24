@@ -2,7 +2,7 @@ import paramiko
 from scp import SCPClient
 import os
 from datetime import datetime
-from CondorCam.Tower.Tower_Code.Updater.ssh_utils import get_ssh_client, run_remote_command
+from ssh_utils import get_ssh_client, run_remote_command
 
 def get_log_files_from_pi(key_path, local_path, remote_path):
     """
