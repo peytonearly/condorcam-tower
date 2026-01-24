@@ -11,7 +11,7 @@ from logging.handlers import RotatingFileHandler
 from statistics import median
 
 # Custom classes
-from Tower_Class import Tower_with_sled
+from pi_runtime.Tower_Class import Tower_with_sled
 # === #
 
 # === Global Variables === #

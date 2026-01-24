@@ -10,8 +10,8 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 
 # Custom classes
-from Encoder_Class import E5_with_Pico_USB
-from Driver_Class import AF160
+from pi_runtime.Encoder_Class import E5_with_Pico_USB
+from pi_runtime.Driver_Class import AF160
 # === #
 
 # === Global Variables === #
