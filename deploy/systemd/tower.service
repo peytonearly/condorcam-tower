@@ -1,12 +1,23 @@
 [Unit]
 Description=Tower Control Script
-After=network.target pigpiod.service
+Wants=network-online.target
+After=network-online.target pigpiod.service
+Requires=pigpiod.service
 
 [Service]
-ExecStart=/home/pi/tower/env/bin/python /home/pi/tower/main.py
-WorkingDirectory=/home/pi/tower
-Restart=always
+Type=simple
 User=pi
+WorkingDirectory=/home/pi/condorcam-tower
+
+# Prefer module execution now that pi_runtime is a package
+ExecStart=/home/pi/condorcam-tower/.venv/bin/python -m pi_runtime.main
+
+Restart=on-failure
+RestartSec=2
+
+# Better logging behavior in journald
+Environment=PYTHONUNBUFFERED=1
+SyslogIdentifier=tower
 
 [Install]
 WantedBy=multi-user.target

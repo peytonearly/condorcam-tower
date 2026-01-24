@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Repo root is parent of deploy/
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Resolve repo root robustly
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+
+# Ensure we run from the repo root so imports like `pi_runtime.*` resolve
+cd "${REPO_ROOT}"
+
 VENV_DIR="${REPO_ROOT}/.venv"
 REQ_FILE="${REPO_ROOT}/requirements.txt"
 
@@ -51,6 +56,7 @@ echo "Running import sanity check..."
 python - <<'PY'
 import importlib
 import sys
+
 mods = [
     "pi_runtime",
     "pi_runtime.Driver_Class",
@@ -58,22 +64,25 @@ mods = [
     "pi_runtime.Event_Class",
     "pi_runtime.Tower_Class",
 ]
+
 failed = []
 for m in mods:
     try:
         importlib.import_module(m)
     except Exception as e:
         failed.append((m, str(e)))
+
 if failed:
     print("Import check FAILED:")
     for m, e in failed:
         print(f"  - {m}: {e}")
     sys.exit(1)
+
 print("Import check OK.")
 PY
 
 echo
 echo "Bootstrap complete."
 echo "Next:"
-echo "  1) (Optional) Run manually: source .venv/bin/activate && python -m pi_runtime.main"
+echo "  1) Run manually: source .venv/bin/activate && python -m pi_runtime.main"
 echo "  2) Install service: sudo ./deploy/install_service.sh"
