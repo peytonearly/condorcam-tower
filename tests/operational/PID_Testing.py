@@ -11,15 +11,15 @@ from logging.handlers import RotatingFileHandler
 from collections import deque
 
 # Custom classes
-from pi_runtime.Tower_Class import Tower_with_sled
-from pi_runtime.Driver_Class import AF160
-from pi_runtime.Encoder_Class import E5_with_Pico_USB
+from Tower_Class import Tower_with_sled
+from Driver_Class import AF160
+from Encoder_Class import E5_with_Pico_USB
 # === #
 
 # === Global Variables === #
 signal_received = False  # Tracks if a signal has been received
 console_logging = False  # Indicates if the logger should output to the console
-tower_connected = False  # Indicates if the tower is connected to the motor
+tower_connected = True  # Indicates if the tower is connected to the motor
 # === #
 
 # === Helpers === #
@@ -95,7 +95,6 @@ def main():
 
     # Initialize runtime variables
     global tower_connected
-    tower_connected  = tower._pedals_connected     # Use controller button to indicate tower connection
     tower_input, _   = tower.get_input_averages()  # Get initial controller inputs
     encoder_position = encoder.get_position()      # Get initial encoder position
     encoder_velocity = encoder.get_travel_rate()   # Get initial encoder velocity
@@ -110,7 +109,6 @@ def main():
             tower_input, _ = tower.get_input_averages()
             encoder_position = encoder.get_position()
             encoder_velocity = encoder.get_travel_rate()
-            tower_connected = tower._pedals_connected
 
             if tower_connected:
                 if tower_input != 0:
@@ -159,6 +157,7 @@ def main():
         encoder.disconnect_encoder()
         pi.stop()
 
+        print("\n")
         logging.info("Clean shutdown complete.")
 
 if __name__ == "__main__":
