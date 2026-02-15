@@ -155,7 +155,7 @@ class MDDS30:
 class AF160:
     # === Driver Register Values === #
     ''' Change these to values derived from motor tuning '''
-    CHANNEL      = 0    # Range [0, 2]            Channel (left, right, both)
+    CHANNEL      = 2    # Range [0, 2]            Channel (left, right, both)
 
     CTRL_SELECT  = 0    # Range [0, 3]            Control input selection
     SERVO_MODE   = 1    # Range [0, 5]            Servo operation mode selection
@@ -183,8 +183,8 @@ class AF160:
         # === Motor Driver Payload Variables === #
         self.throttle_input_scaled = 0  # Throttle input normalized to AF160 PWM torque limits (-255 to 255)
         self.steering_input_scaled = 0  # Steering input normalized to AF160 PWM torque limits (-255 to 255)
-        self.throttle_command = None  # Throttle command (left motor)
-        self.steering_command = None  # Steering command (right motor)
+        self.throttle_command = None  # Throttle command (right motor)
+        self.steering_command = None  # Steering command (left motor)
         self.response = None  # Response from driver
         # === #
 
@@ -222,6 +222,7 @@ class AF160:
         Set driver parameters to pre-configured values.
         """
         def log_string(register, channel, val, response): return f"{register} | Channel {channel} set to {val} | {"Success" if (int(response) == int(val)) else "Failed"}"
+        
         # Control Input Select (j)
         self._send_command(f"{channel}sj{self.CTRL_SELECT}\r".encode("ascii"))
         self._send_command(f"{channel}gj\r".encode("ascii"))
@@ -306,7 +307,7 @@ class AF160:
         """
         # Throttle input
         self.throttle_input_scaled = self._scale_input(throttle_input)
-        self.throttle_command = f"@0st{self.throttle_input_scaled}\r".encode("ascii")
+        self.throttle_command = f"@1st{self.throttle_input_scaled}\r".encode("ascii")
         self.driver.write(self.throttle_command)
         self.driver.flush()
         time.sleep(0.01)
@@ -314,7 +315,7 @@ class AF160:
         # Steering input (if applicable)
         if steering_input is not None:
             self.steering_input_scaled = self._scale_input(steering_input)
-            self.steering_command = f"@1st{self.steering_input_scaled}\r".encode("ascii")
+            self.steering_command = f"@0st{self.steering_input_scaled}\r".encode("ascii")
             self.driver.write(self.steering_command)
             self.driver.flush()
             time.sleep(0.01)

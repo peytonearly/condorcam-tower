@@ -96,7 +96,7 @@ def main():
     encoder_max = encoder.get_encoder_max()  # Get max encoder value
     encoder_trusted = encoder.get_encoder_trust()  # Determines if encoder can be trusted on startup
     last_encoder_trust_attempt = time.time()  # Track the last time that program attempted to gain encoder trust
-    driver_throttle = driver_steering = 0  # Initialize throttle and steering speed values
+    driver_throttle = sled_input = 0  # Initialize throttle and steering speed values
     slow_range = 0.1  # Sets the slow-down region to outer 10% of travel range
 
     # Main loop

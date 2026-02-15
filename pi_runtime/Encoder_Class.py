@@ -581,7 +581,7 @@ class E5_with_Pico_USB:
         self._encoder_cpr = 32  # Encoder counts per revolution
         self._encoder_rev_to_max = 66.5  # Number of revolutions made from lowest to highest tower point
         # self._encoder_max = self._encoder_cpr * self._encoder_rev_to_max  # Encoder max position
-        self._encoder_max = 8000  # Encoder max position
+        self._encoder_max = 8000  # Encoder max position (experimentally derived)
         
         # Serial connection variables
         self.ser_port = "/dev/ttyACM0"
