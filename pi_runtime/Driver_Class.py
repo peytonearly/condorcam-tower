@@ -155,7 +155,7 @@ class MDDS30:
 class AF160:
     # === Driver Register Values === #
     ''' Change these to values derived from motor tuning '''
-    CHANNEL      = 2    # Range [0, 2]            Channel (left, right, both)
+    CHANNEL      = 1    # Range [0, 2]            Channel (left, right, both)
 
     CTRL_SELECT  = 0    # Range [0, 3]            Control input selection
     SERVO_MODE   = 1    # Range [0, 5]            Servo operation mode selection
@@ -169,7 +169,7 @@ class AF160:
     BACK_EMF     = 8    # Range [0, 255]          Used to estimate torque and compensate for friction
     MIN_DRIVE    = 0    # Range [0, 255]          Drive to add to the output to overcome friction
     SLEW_RATE    = 1    # Range [0, 100]          How fast the drive value can changes (100ms)
-    TORQUE_LIMIT = 0    # Range [0, 255]          With back-EMF, limits maximum current draw
+    TORQUE_LIMIT = 255  # Range [0, 255]          With back-EMF, limits maximum current draw
     # === #
 
     def __init__(self):
@@ -221,62 +221,62 @@ class AF160:
         """
         Set driver parameters to pre-configured values.
         """
-        def log_string(register, channel, val, response): return f"{register} | Channel {channel} set to {val} | {"Success" if (int(response) == int(val)) else "Failed"}"
+        def log_string(register, channel, val, response): return f"{register} | Channel {channel} set to {val} | {'Success' if (int(response) == int(val)) else 'Failed'}"
         
         # Control Input Select (j)
-        self._send_command(f"{channel}sj{self.CTRL_SELECT}\r".encode("ascii"))
-        self._send_command(f"{channel}gj\r".encode("ascii"))
+        self._send_command(f"@{channel}sj{self.CTRL_SELECT}\r".encode("ascii"))
+        self._send_command(f"@{channel}gj\r".encode("ascii"))
         self.logger.info(log_string("Control Input Select (j)", channel, self.CTRL_SELECT, self.response))
 
         # Servo Mode (m)
-        self._send_command(f"{channel}sm{self.SERVO_MODE}\r".encode("ascii"))
-        self._send_command(f"{channel}gm\r".encode("ascii"))
+        self._send_command(f"@{channel}sm{self.SERVO_MODE}\r".encode("ascii"))
+        self._send_command(f"@{channel}gm\r".encode("ascii"))
         self.logger.info(log_string("Servo Mode (m)", channel, self.SERVO_MODE, self.response))
 
         # Servo Update Rate (r)
-        self._send_command(f"{channel}sr{self.SERVO_RATE}\r".encode("ascii"))
-        self._send_command(f"{channel}gr\r".encode("ascii"))
+        self._send_command(f"@{channel}sr{self.SERVO_RATE}\r".encode("ascii"))
+        self._send_command(f"@{channel}gr\r".encode("ascii"))
         self.logger.info(log_string("Servo Update Rate (r)", channel, self.SERVO_RATE, self.response))
 
         # Proportional Gain (P)
-        self._send_command(f"{channel}sP{self.P_GAIN}\r".encode("ascii"))
-        self._send_command(f"{channel}gP\r".encode("ascii"))
+        self._send_command(f"@{channel}sP{self.P_GAIN}\r".encode("ascii"))
+        self._send_command(f"@{channel}gP\r".encode("ascii"))
         self.logger.info(log_string("Proportional Gain (P)", channel, self.P_GAIN, self.response))
 
         # Integral Gain (I)
-        self._send_command(f"{channel}sI{self.I_GAIN}\r".encode("ascii"))
-        self._send_command(f"{channel}gI\r".encode("ascii"))
+        self._send_command(f"@{channel}sI{self.I_GAIN}\r".encode("ascii"))
+        self._send_command(f"@{channel}gI\r".encode("ascii"))
         self.logger.info(log_string("Integral Gain (I)", channel, self.I_GAIN, self.response))
 
         # Derivative Gain (D)
-        self._send_command(f"{channel}sD{self.D_GAIN}\r".encode("ascii"))
-        self._send_command(f"{channel}gD\r".encode("ascii"))
+        self._send_command(f"@{channel}sD{self.D_GAIN}\r".encode("ascii"))
+        self._send_command(f"@{channel}gD\r".encode("ascii"))
         self.logger.info(log_string("Derivative Gain (D)", channel, self.D_GAIN, self.response))
         
         # Brake (B)
-        self._send_command(f"{channel}sB{self.BRAKE}\r".encode("ascii"))
-        self._send_command(f"{channel}gB\r")
+        self._send_command(f"@{channel}sB{self.BRAKE}\r".encode("ascii"))
+        self._send_command(f"@{channel}gB\r".encode("ascii"))
         self.logger.info(log_string("Brake (B)", channel, self.BRAKE, self.response))
 
         # Back-EMF Factor (E)
-        self._send_command(f"{channel}sE{self.BACK_EMF}\r".encode("ascii"))
-        self._send_command(f"{channel}gE\r".encode("ascii"))
+        self._send_command(f"@{channel}sE{self.BACK_EMF}\r".encode("ascii"))
+        self._send_command(f"@{channel}gE\r".encode("ascii"))
         self.logger.info(log_string("Back-EMF Factor (E)", channel, self.BACK_EMF, self.response))
 
         # Minimum Drive (M)
-        self._send_command(f"{channel}sM{self.MIN_DRIVE}\r".encode("ascii"))
-        self._send_command(f"{channel}gM\r".encode("ascii"))
+        self._send_command(f"@{channel}sM{self.MIN_DRIVE}\r".encode("ascii"))
+        self._send_command(f"@{channel}gM\r".encode("ascii"))
         self.logger.info(log_string("Minimum Drive (M)", channel, self.MIN_DRIVE, self.response))
 
         # Power Slew Rate (s)
-        self._send_command(f"{channel}ss{self.SLEW_RATE}\r".encode("ascii"))
-        self._send_command(f"{channel}gs\r".encode("ascii"))
+        self._send_command(f"@{channel}ss{self.SLEW_RATE}\r".encode("ascii"))
+        self._send_command(f"@{channel}gs\r".encode("ascii"))
         self.logger.info(log_string("Power Slew Rate (s)", channel, self.SLEW_RATE, self.response))
 
         # Torque Limit (T)
-        self._send_command(f"{channel}sT{self.TORQUE_LIMIT}\r".encode("ascii"))
-        self._send_command(f"{channel}gT\r".encode("ascii"))
-        self.logger.info(log_string("Torque Limit (T)", channel, self.TORQUE_LIMIT,))
+        self._send_command(f"@{channel}sT{self.TORQUE_LIMIT}\r".encode("ascii"))
+        self._send_command(f"@{channel}gT\r".encode("ascii"))
+        self.logger.info(log_string("Torque Limit (T)", channel, self.TORQUE_LIMIT,self.response))
 
     def disconnect_driver(self):
         """

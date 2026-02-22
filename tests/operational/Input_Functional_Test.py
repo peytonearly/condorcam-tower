@@ -12,6 +12,7 @@ from statistics import median
 
 # Custom classes
 from Tower_Class import Tower_with_sled
+from Driver_Class import AF160
 # === #
 
 # === Global Variables === #
@@ -101,38 +102,39 @@ def main():
     pi = pigpio.pi()
     if not pi.connected:
         logging.critical("Could not connect to pigpio daemon. Closing...")
-        print("Could not connect to pigpio daemon. Closing...")
+        print("Could not connected to pigpio daemon. Closing...")
         exit()
         
     # Class instantiation
     tower = Tower_with_sled(pi)
+    driver = AF160()
     
     # Test loop
     try:
         logging.info("Beginning loop")
         while not signal_received:
-            throttle_input, steering_input = tower.get_input_averages()  # Collect inputs
+            throttle_input, steering_input = tower.get_input_averages()
+            throttle_command = driver._scale_input(throttle_input)
+            steering_command = driver._scale_input(steering_input)
             
             lines = [
-                f"Channel 1 | High time: {int(median(tower.steering_dq))} | Value: {tower.steering_input:.3f} | Input: {steering_input:.3f}",
-                f"Channel 2 | High time: {int(median(tower.throttle_dq))} | Value: {tower.throttle_input:.3f} | Input: {throttle_input:.3f}",
-                f"Channel 3 | High time: {int(median(tower.channel3_dq))} | Value: {tower._pedals_connected}",
-                f"Channel 4 | High time: {int(median(tower.channel4_dq))} | Value: {tower._steering_direction}",
-                f"Channel 5 | High time: {int(median(tower.channel5_dq))} | Value: {tower._max_allowed_sled_speed}",
-                f"Channel 6 | High time: {int(median(tower.channel6_dq))} | Value: {tower._max_allowed_tower_speed}",
-                f"Max Allowed Tower Speed = {tower._max_allowed_tower_speed:.3f}",
+                f"Steering | Value: {tower.steering_input:.3f} | Input: {steering_input:.3f} | Command: {steering_command}",
+                f"Throttle | Value: {tower.throttle_input:.3f} | Input: {throttle_input:.3f} | Command: {throttle_command}",
             ]
             
             redraw(lines)
             
             # Log debug values
             tower.log_debug_values()
+            driver.log_debug_values()
+            
             time.sleep(0.1)
     finally:
         if signal_received:
             logging.warning("Interrupt signal received. Closing program.")
             print("Interrupt signal received. Closing...")
         tower.disconnect_devices()
+        driver.disconnect_driver()
         pi.stop()
         logging.info("Clean shutdown complete.")
         

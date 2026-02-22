@@ -131,12 +131,12 @@ def main():
                             driver_throttle = tower.above_upper_zone()
                 else:
                     # Hold tower position
-                    driver_throttle = tower.position_hold(encoder.get_travel_rate())
+                    driver_throttle = tower.position_hold(encoder_velocity)
             else:
                 driver_throttle = tower.middle_zone()
 
             # Send motor commands
-            driver.send_payloads(driver_throttle, driver_throttle)  # Send to both motors to avoid worrying about wiring for now.
+            driver.send_payloads(driver_throttle)  # Send to both motors to avoid worrying about wiring for now.
 
             # Log debug values
             tower.log_debug_values()

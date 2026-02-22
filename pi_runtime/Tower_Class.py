@@ -1024,7 +1024,7 @@ class Tower_with_sled:
         self.get_controller_channel5_command()
         self.get_controller_channel6_command()
         
-        return self.throttle_input, (self.steering_input * self._steering_direction * self._max_allowed_sled_speed)
+        return self.throttle_input * self._max_allowed_tower_speed, (self.steering_input * self._steering_direction * self._max_allowed_sled_speed)
     # === #
     
     # === Tower Zone Handlers === #
