@@ -1,22 +1,30 @@
-# === Import Libraries === #
+'''
+Functional test script that mimics main.py, but outputs additional information in real-time to assist with testing.
+'''
+
+# === Import Libaries === #
 # Python libraries
 import pigpio
 import os
+import sys
 import logging
 import time
 import signal
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
+from collections import deque
+import matplotlib.pyplot as plt
 
 # Custom classes
-from Tower_Class import Tower_with_sled
-from Driver_Class import AF160
-from Encoder_Class import E5_with_Pico_USB
+from pi_runtime.Tower_Class import Tower_with_sled
+from pi_runtime.Driver_Class import AF160
+from pi_runtime.Encoder_Class import E5_with_Pico_USB
 # === #
 
 # === Global Variables === #
 signal_received = False  # Tracks if a signal has been received
 console_logging = False  # Indicates if the logger should output to the console
+tower_connected = False  # Indicates if the tower is connected to the motor
 # === #
 
 # === Helpers === #
@@ -28,7 +36,7 @@ class MicrosecondFormatter(logging.Formatter):
         dt = datetime.fromtimestamp(record.created)
         if datefmt:
             return dt.strftime(datefmt)
-        return dt.strftime("%Y-%m-%d %H:%M:%S.%f")
+        return dt.strftime("%Y-%m-%d %H:$M:$S.$f")
     
 def setup_logging():
     """
@@ -56,7 +64,7 @@ def setup_logging():
         console_handler.setLevel(logging.INFO)
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
-        
+
 def signal_handler(signum, frame):
     """
     Handles interrupt signals.
@@ -66,11 +74,17 @@ def signal_handler(signum, frame):
     logging.info(f"Signal {signum} received")
 # === #
 
+# === Matplotlib Integration === #
+WINDOW_S = 15.0            # Rolling window length
+REFRESH_HZ = 15.0          # Plot update rate (Hz)
+MIN_LOOP_SLEEP_S = 0.0005  # Small sleep to avoid pegging CPU
+# === #
+
 def main():
     # Start the logger
     os.makedirs("logs", exist_ok=True)
     setup_logging()
- 
+
     # Signal interrupt
     global signal_received
     signal.signal(signal.SIGINT, signal_handler)
@@ -82,7 +96,7 @@ def main():
         logging.critical("Could not connect to pigpio daemon. Closing...")
         exit()
 
-    # Create class instances
+    # Instantiate classes
     tower = Tower_with_sled(pi)
     driver = AF160()
     encoder = E5_with_Pico_USB()
@@ -91,24 +105,42 @@ def main():
     tower.on_zero_button_change.subscribe(encoder.handle_zero_button_tripped)
 
     # Initialize runtime variables
-    tower_input, sled_input = tower.get_input_averages()  # Get initial controller inputs
-    encoder_position = encoder.get_position()  # Get initial encoder position
-    encoder_max = encoder.get_encoder_max()  # Get max encoder value
-    encoder_trusted = encoder.get_encoder_trust()  # Determines if encoder can be trusted on startup
-    last_encoder_trust_attempt = time.time()  # Track the last time that program attempted to gain encoder trust
-    driver_throttle = sled_input = 0  # Initialize throttle and steering speed values
-    slow_range = 0.1  # Sets the slow-down region to outer 10% of travel range
+    global tower_connected
+    tower_input, _   = tower.get_input_averages()  # Get initial controller inputs
+    encoder_position = encoder.get_position()      # Get initial encoder position
+    encoder_max      = encoder.get_encoder_max()   # Get max encoder value
+    driver_throttle  = 0                           # Initialize throttle speed value
+    slow_range       = 0.1                         # Sets the slow-down region to outer 10% of travel range
+
+    # --- Plotting --- #
+    t0 = time.monotonic()
+    ts = deque()
+    ys = deque()
+
+    plt.ion()
+    fig, ax = plt.subplots()
+    (line,) = ax.plot([], [], lw=1)
+    ax.set_title("Encoder (last 15s)")
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("Position")
+    fig.tight_layout()
+
+    next_refresh = time.monotonic()
+    refresh_period = 1.0 / REFRESH_HZ
+
+    DISPLAY_MAX_HZ = 300.0
+    display_min_dt = 1.0 / DISPLAY_MAX_HZ
+    last_display_t = 0.0
+    # ---------------- #
 
     # Main loop
     try:
         logging.info("Beginning loop")
-        while not signal_received:
-            # Check for controller input and current position
-            tower_input, sled_input = tower.get_input_averages()
+        while not signal_received and plt.fignum_exists(fig.number):
+            tower_input, _ = tower.get_input_averages()
             encoder_position = encoder.get_position()
 
-            # Determine throttle speed
-            if encoder_trusted:
+            if tower_connected:
                 if tower_input != 0:
                     # Handle zones
                     match encoder_position:
@@ -134,24 +166,66 @@ def main():
                 driver_throttle = tower.middle_zone()
 
             # Send motor commands
-            driver.send_payloads(driver_throttle, sled_input)
+            driver.send_payloads(driver_throttle, driver_throttle)  # Send to both motors. Avoids having to worry about wiring for now
 
             # Log debug values
             tower.log_debug_values()
             driver.log_debug_values()
             encoder.log_debug_values()
+            
+            print(f"Encoder position {encoder_position}")
+            sys.stdout.write("\033[F" * 1)
 
-            if not encoder_trusted and (time.time() - last_encoder_trust_attempt) > 5.0:
-                # Attempt to gain encoder trust every 5 seconds
-                encoder_trusted = encoder.reconnect_encoder()
-                last_encoder_trust_attempt = time.time()
+            # # --- Plotting --- #
+            # now = time.monotonic()
+            # t = now - t0
+
+            # if (t - last_display_t) >= display_min_dt:
+            #     ts.append(t)
+            #     ys.append(encoder_position)
+            #     last_display_t = t
+
+            # # Trim to last WINDOW_S seconds
+            # while ts and (t - ts[0]) > WINDOW_S:
+            #     ts.popleft()
+            #     ys.popleft()
+
+            # # Plot refresh on its own schedule
+            # if now >= next_refresh and ts:
+            #     x = list(ts)
+            #     y = list(ys)
+
+            #     line.set_data(x, y)
+
+            #     # Rolling x-window
+            #     ax.set_xlim(max(0.0, x[-1] - WINDOW_S), x[-1])
+
+            #     # Autoscale y to visible data (with padding)
+            #     ymin = min(y)
+            #     ymax = max(y)
+            #     pad = 1.0 if ymax == ymin else 0.05 * (ymax - ymin)
+            #     ax.set_ylim(ymin - pad, ymax + pad)
+
+            #     fig.canvas.draw_idle()
+            #     fig.canvas.flush_events()
+
+            #     next_refresh += refresh_period
+
+            # time.sleep(MIN_LOOP_SLEEP_S)
+            # --- #
     finally:
         if signal_received:
             logging.warning("Interrupt signal received. Closing program.")
+
+        # Disconnect tower devices
         tower.disconnect_devices()
         driver.disconnect_driver()
         encoder.disconnect_encoder()
         pi.stop()
+
+        # Close plotter
+        plt.ioff()
+        plt.close(fig)
         logging.info("Clean shutdown complete.")
 
 if __name__ == "__main__":

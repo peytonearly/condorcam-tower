@@ -490,28 +490,31 @@ class Tower_with_sled:
         # === Constants === #
         # Controller
         self._controller_timeout = 1_000_000  # Timeout threshold (µs)
-        self._input_timeout = 3_000_000  # Input timeout threshold (µs)
-        self._input_min = 0.01  # Minimum input value that will be acted on
-        self._deadzone = 0.3  # Deadzone (% of controller input)
-        self._steering_direction = 1  # Tracks which direction the sled moves per given steering input direction (1 or -1 multiplier)
-        self._pedals_connected = False  # Indicates if the pedals are connected based on the channel 3 state. False/0 for off | True/1 for on
-        self._ema_alpha_throttle = 0.5  # Throttle smoothing factor. Lower numbers are smoother, higher numbers are more responsive
-        self._ema_alpha_steering = 0.1  # Steering smoothing factor. Lower numbers are smoother, higher numbers are more responsive
+        self._input_timeout = 3_000_000       # Input timeout threshold (µs)
+        self._input_min = 0.01                # Minimum input value that will be acted on
+        self._deadzone = 0.3                  # Deadzone (% of controller input)
+        self._steering_direction = 1          # Tracks which direction the sled moves per given steering input direction (1 or -1 multiplier)
+        self._pedals_connected = False        # Indicates if the pedals are connected based on the channel 3 state. False/0 for off | True/1 for on
+        self._ema_alpha_throttle = 0.2        # Throttle smoothing factor. Lower numbers are smoother, higher numbers are more responsive
+        self._ema_alpha_steering = 0.2        # Steering smoothing factor. Lower numbers are smoother, higher numbers are more responsive
 
         # PWM limits
-        self._controller_throttle_neutral = [1500, 1975]  # Neutral throttle point [Controller, Foot Pedals]
-        self._controller_throttle_forward = [1980, 2125]  # Forward throttle limit [Controller, Foot Pedals]
-        self._controller_throttle_backward = [1000, 1195]  # Backward throttle limit [Controller, Foot Pedals]
+        # self._controller_throttle_neutral  = [1500, 1975]  # Neutral throttle point [Controller, Foot Pedals]
+        # self._controller_throttle_forward  = [1980, 2125]  # Forward throttle limit [Controller, Foot Pedals]
+        # self._controller_throttle_backward = [1000, 1195]  # Backward throttle limit [Controller, Foot Pedals]
+        self._controller_throttle_neutral  = [1500, 1500]
+        self._controller_throttle_forward  = [1980, 1980]
+        self._controller_throttle_backward = [1000, 1000]
         
-        self._controller_steering_neutral = 1512  # Neutral steering point
-        self._controller_steering_forward = 2012  # Forward steering limit
+        self._controller_steering_neutral  = 1512  # Neutral steering point
+        self._controller_steering_forward  = 2012  # Forward steering limit
         self._controller_steering_backward = 1012  # Backward steering limit
         
-        self._controller_channel_left = 875  # Left channel limit (channels 5 and 6 are the same value)
+        self._controller_channel_left  = 875   # Left channel limit (channels 5 and 6 are the same value)
         self._controller_channel_right = 2125  # Right channel limit (channels 5 and 6 are the same value)
         
         self._controller_channel3_off = 1270  # Channel 3 off value
-        self._controller_channel3_on = 1760  # Channel 3 on value
+        self._controller_channel3_on  = 1760  # Channel 3 on value
         
         self._controller_channel4_1 = 1270  # Channel 4 position 1 value
         self._controller_channel4_2 = 1515  # Channel 4 position 2 value
@@ -871,12 +874,6 @@ class Tower_with_sled:
                     if high_time > self._controller_throttle_neutral[self._pedals_connected]:
                         # Upward normalization
                         self._throttle_input_unsmooth = (high_time - self._controller_throttle_neutral[self._pedals_connected]) / (self._controller_throttle_forward[self._pedals_connected] - self._controller_throttle_neutral[self._pedals_connected])
-                        # if not self._pedals_connected:
-                        #     # Controller input
-                        #     self._throttle_input_unsmooth = (high_time - self._controller_throttle_neutral[self._pedals_connected]) / (self._controller_throttle_forward[self._pedals_connected] - self._controller_throttle_neutral[self._pedals_connected])
-                        # else:
-                        #     # Foot pedals input
-                        #     self._throttle_input_unsmooth = (high_time - self._controller_throttle_neutral[self._pedals_connected]) / (self._controller_throttle_forward[self._pedals_connected] - self._controller_throttle_neutral[self._pedals_connected])
                             
                         # Clamp to 1.0
                         self._throttle_input_unsmooth = min(self._throttle_input_unsmooth, 1.0)
@@ -884,12 +881,6 @@ class Tower_with_sled:
                     elif high_time < self._controller_throttle_neutral[self._pedals_connected]:
                         # Downward normalization
                         self._throttle_input_unsmooth = (high_time - self._controller_throttle_neutral[self._pedals_connected]) / (self._controller_throttle_neutral[self._pedals_connected] - self._controller_throttle_backward[self._pedals_connected])
-                        # if not self._pedals_connected:
-                        #     # Controller input
-                        #     self._throttle_input_unsmooth = (high_time - self._controller_throttle_neutral[self._pedals_connected]) / (self._controller_throttle_neutral[self._pedals_connected] - self._controller_throttle_backward[self._pedals_connected])
-                        # else:
-                        #     # Foot pedals input
-                        #     self._throttle_input_unsmooth = (high_time - self._controller_throttle_neutral[self._pedals_connected]) / (self._controller_throttle_neutral[self._pedals_connected] - self._controller_throttle_backward[self._pedals_connected])
 
                         # Clamp to -1.0
                         self._throttle_input_unsmooth = max(self._throttle_input_unsmooth, -1.0)
@@ -1033,7 +1024,7 @@ class Tower_with_sled:
         self.get_controller_channel5_command()
         self.get_controller_channel6_command()
         
-        return self.throttle_input, (self.steering_input * self._steering_direction * self._max_allowed_sled_speed)
+        return self.throttle_input * self._max_allowed_tower_speed, (self.steering_input * self._steering_direction * self._max_allowed_sled_speed)
     # === #
     
     # === Tower Zone Handlers === #

@@ -1,3 +1,8 @@
+'''
+- Add functionality to AF160.get_driver_configuration() that sets registers to expected values before 
+    collecting current state.
+'''
+
 import pigpio
 import serial
 import logging
@@ -148,6 +153,25 @@ class MDDS30:
     # === #
 
 class AF160:
+    # === Driver Register Values === #
+    ''' Change these to values derived from motor tuning '''
+    CHANNEL      = 1    # Range [0, 2]            Channel (left, right, both)
+
+    CTRL_SELECT  = 0    # Range [0, 3]            Control input selection
+    SERVO_MODE   = 1    # Range [0, 5]            Servo operation mode selection
+    SERVO_RATE   = 20   # Range [0, 255]          Basic loop rate for servo calculations (ms)
+
+    P_GAIN       = 0    # Range [-32000, 32000]   Corrects error between actual and commanded positions 
+    I_GAIN       = 0    # Range [-3200, 3200]     Corrects error between actual and command velocities
+    D_GAIN       = 0    # Range [0, 1023]         How strong servo tries to maintain a velocity set point 
+
+    BRAKE        = 31   # Range [0, 31]           Brake % value
+    BACK_EMF     = 8    # Range [0, 255]          Used to estimate torque and compensate for friction
+    MIN_DRIVE    = 0    # Range [0, 255]          Drive to add to the output to overcome friction
+    SLEW_RATE    = 1    # Range [0, 100]          How fast the drive value can changes (100ms)
+    TORQUE_LIMIT = 255  # Range [0, 255]          With back-EMF, limits maximum current draw
+    # === #
+
     def __init__(self):
         """
         Class initialization.
@@ -159,8 +183,8 @@ class AF160:
         # === Motor Driver Payload Variables === #
         self.throttle_input_scaled = 0  # Throttle input normalized to AF160 PWM torque limits (-255 to 255)
         self.steering_input_scaled = 0  # Steering input normalized to AF160 PWM torque limits (-255 to 255)
-        self.throttle_command = None  # Throttle command (left motor)
-        self.steering_command = None  # Steering command (right motor)
+        self.throttle_command = None  # Throttle command (right motor)
+        self.steering_command = None  # Steering command (left motor)
         self.response = None  # Response from driver
         # === #
 
@@ -184,86 +208,75 @@ class AF160:
             baudrate=115200,
             timeout=0.1
         )
-        
-        self.get_driver_configuration()
+
+        if self.CHANNEL == 2:  # Both motors
+            self.set_get_driver_configuration(0)  # Set configs for left motor
+            self.set_get_driver_configuration(1)  # Set configs for right motor
+        else:
+            self.set_get_driver_configuration(self.CHANNEL)
 
         self.logger.info("AF160 driver connected via UART serial")
-        
-    def get_driver_configuration(self):
+
+    def set_get_driver_configuration(self, channel):
         """
-        Collect and log current motor driver configuration parameters.
+        Set driver parameters to pre-configured values.
         """
-        # Servo modes (m)
-        self._send_command(f"@0gm\r".encode("ascii"))
-        self.logger.info(f"Left motor servo mode: {self.response}")
-        self._send_command(f"@1gm\r".encode("ascii"))
-        self.logger.info(f"Right motor servo mode: {self.response}")
+        def log_string(register, channel, val, response): return f"{register} | Channel {channel} set to {val} | {'Success' if (int(response) == int(val)) else 'Failed'}"
         
-        # Control input selection (j)
-        self._send_command(f"@0gj\r".encode("ascii"))
-        self.logger.info(f"Left motor control input selection: {self.response}")
-        self._send_command(f"@1gj\r".encode("ascii"))
-        self.logger.info(f"Right motor control input selection: {self.response}")
+        # Control Input Select (j)
+        self._send_command(f"@{channel}sj{self.CTRL_SELECT}\r".encode("ascii"))
+        self._send_command(f"@{channel}gj\r".encode("ascii"))
+        self.logger.info(log_string("Control Input Select (j)", channel, self.CTRL_SELECT, self.response))
+
+        # Servo Mode (m)
+        self._send_command(f"@{channel}sm{self.SERVO_MODE}\r".encode("ascii"))
+        self._send_command(f"@{channel}gm\r".encode("ascii"))
+        self.logger.info(log_string("Servo Mode (m)", channel, self.SERVO_MODE, self.response))
+
+        # Servo Update Rate (r)
+        self._send_command(f"@{channel}sr{self.SERVO_RATE}\r".encode("ascii"))
+        self._send_command(f"@{channel}gr\r".encode("ascii"))
+        self.logger.info(log_string("Servo Update Rate (r)", channel, self.SERVO_RATE, self.response))
+
+        # Proportional Gain (P)
+        self._send_command(f"@{channel}sP{self.P_GAIN}\r".encode("ascii"))
+        self._send_command(f"@{channel}gP\r".encode("ascii"))
+        self.logger.info(log_string("Proportional Gain (P)", channel, self.P_GAIN, self.response))
+
+        # Integral Gain (I)
+        self._send_command(f"@{channel}sI{self.I_GAIN}\r".encode("ascii"))
+        self._send_command(f"@{channel}gI\r".encode("ascii"))
+        self.logger.info(log_string("Integral Gain (I)", channel, self.I_GAIN, self.response))
+
+        # Derivative Gain (D)
+        self._send_command(f"@{channel}sD{self.D_GAIN}\r".encode("ascii"))
+        self._send_command(f"@{channel}gD\r".encode("ascii"))
+        self.logger.info(log_string("Derivative Gain (D)", channel, self.D_GAIN, self.response))
         
-        # Servo update rate (r)
-        self._send_command(f"@0gr\r".encode("ascii"))
-        self.logger.info(f"Left motor servo update rate: {self.response}")
-        self._send_command(f"@1gr\r".encode("ascii"))
-        self.logger.info(f"Right motor servo update rate: {self.response}")
-        
-        # Power slew rate (s)
-        self._send_command(f"@0gs\r".encode("ascii"))
-        self.logger.info(f"Left motor power slew rate: {self.response}")
-        self._send_command(f"@1gs\r".encode("ascii"))
-        self.logger.info(f"Right motor power slew rate: {self.response}")
-        
-        # Minimum drive value (M)
-        self._send_command(f"@0gM\r".encode("ascii"))
-        self.logger.info(f"Left motor minimum drive value: {self.response}")
-        self._send_command(f"@1gM\r".encode("ascii"))
-        self.logger.info(f"Right motor minimum drive value: {self.response}")
-        
-        # Proportional gain value (P)
-        self._send_command(f"@0gP\r".encode("ascii"))
-        self.logger.info(f"Left motor proportional gain value: {self.response}")
-        self._send_command(f"@1gP\r".encode("ascii"))
-        self.logger.info(f"Right motor proportional gain value: {self.response}")
-        
-        # Integral gain value (I)
-        self._send_command(f"@0gI\r".encode("ascii"))
-        self.logger.info(f"Left motor integral gain value: {self.response}")
-        self._send_command(f"@1gI\r".encode("ascii"))
-        self.logger.info(f"Right motor integral gain value: {self.response}")
-        
-        # Derivative gain value (D)
-        self._send_command(f"@0gD\r".encode("ascii"))
-        self.logger.info(f"Left motor derivative gain value: {self.response}")
-        self._send_command(f"@1gD\r".encode("ascii"))
-        self.logger.info(f"Right motor derivative gain value: {self.response}")
-        
-        # Input factor (F)
-        self._send_command(f"@0gF\r".encode("ascii"))
-        self.logger.info(f"Left motor input factor: {self.response}")
-        self._send_command(f"@1gF\r".encode("ascii"))
-        self.logger.info(f"Right motor input factor: {self.response}")
-        
-        # Brake value (B)
-        self._send_command(f"@0gB\r".encode("ascii"))
-        self.logger.info(f"Left motor brake value: {self.response}")
-        self._send_command(f"@1gB\r".encode("ascii"))
-        self.logger.info(f"Right motor brake value: {self.response}")
-        
-        # Back-EMF factor (E)
-        self._send_command(f"@0gE\r".encode("ascii"))
-        self.logger.info(f"Left motor back-EMF value: {self.response}")
-        self._send_command(f"@1gE\r".encode("ascii"))
-        self.logger.info(f"Right motor back-EMF value: {self.response}")
-        
-        # Torque limit (T)
-        self._send_command(f"@0gT\r".encode("ascii"))
-        self.logger.info(f"Left motor torque limit: {self.response}")
-        self._send_command(f"@1gT\r".encode("ascii"))
-        self.logger.info(f"Right motor torque limit: {self.response}")
+        # Brake (B)
+        self._send_command(f"@{channel}sB{self.BRAKE}\r".encode("ascii"))
+        self._send_command(f"@{channel}gB\r".encode("ascii"))
+        self.logger.info(log_string("Brake (B)", channel, self.BRAKE, self.response))
+
+        # Back-EMF Factor (E)
+        self._send_command(f"@{channel}sE{self.BACK_EMF}\r".encode("ascii"))
+        self._send_command(f"@{channel}gE\r".encode("ascii"))
+        self.logger.info(log_string("Back-EMF Factor (E)", channel, self.BACK_EMF, self.response))
+
+        # Minimum Drive (M)
+        self._send_command(f"@{channel}sM{self.MIN_DRIVE}\r".encode("ascii"))
+        self._send_command(f"@{channel}gM\r".encode("ascii"))
+        self.logger.info(log_string("Minimum Drive (M)", channel, self.MIN_DRIVE, self.response))
+
+        # Power Slew Rate (s)
+        self._send_command(f"@{channel}ss{self.SLEW_RATE}\r".encode("ascii"))
+        self._send_command(f"@{channel}gs\r".encode("ascii"))
+        self.logger.info(log_string("Power Slew Rate (s)", channel, self.SLEW_RATE, self.response))
+
+        # Torque Limit (T)
+        self._send_command(f"@{channel}sT{self.TORQUE_LIMIT}\r".encode("ascii"))
+        self._send_command(f"@{channel}gT\r".encode("ascii"))
+        self.logger.info(log_string("Torque Limit (T)", channel, self.TORQUE_LIMIT,self.response))
 
     def disconnect_driver(self):
         """
@@ -294,7 +307,7 @@ class AF160:
         """
         # Throttle input
         self.throttle_input_scaled = self._scale_input(throttle_input)
-        self.throttle_command = f"@0st{self.throttle_input_scaled}\r".encode("ascii")
+        self.throttle_command = f"@1st{self.throttle_input_scaled}\r".encode("ascii")
         self.driver.write(self.throttle_command)
         self.driver.flush()
         time.sleep(0.01)
@@ -302,9 +315,10 @@ class AF160:
         # Steering input (if applicable)
         if steering_input is not None:
             self.steering_input_scaled = self._scale_input(steering_input)
-            self.steering_command = f"@1st{self.steering_input_scaled}\r".encode("ascii")
+            self.steering_command = f"@0st{self.steering_input_scaled}\r".encode("ascii")
             self.driver.write(self.steering_command)
             self.driver.flush()
+            time.sleep(0.01)
         
     def _send_command(self, command):
         """
