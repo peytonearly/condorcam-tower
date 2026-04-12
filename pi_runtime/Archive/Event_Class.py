@@ -1,8 +1,5 @@
 class Zero_Button_Event:
-    """
-    Handles zero button event notifications.
-    """
-    def __init__(self) -> None:
+    def __init__(self):
         self._subscribers = []
         
     def subscribe(self, fn):
