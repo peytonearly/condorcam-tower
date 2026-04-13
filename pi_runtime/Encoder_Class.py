@@ -217,6 +217,21 @@ class E5_with_Pico_USB:
         Returns encoder connection status.
         """
         return self.encoder_connected
+    
+    def set_encoder_max(self, enc_max: int) -> None:
+        """
+        Allows external programs to set the max encoder position.
+        """
+        self._encoder_max = enc_max
+        
+    def set_zero_position(self) -> None:
+        """
+        Allows external programs to set the encoder position to zero.
+        
+        Only use when zero button is deemed inoperable.
+        """
+        self.logger.warning("Encoder position manually reset")
+        self._reset_pico_position()
     # === #
     
     # === Logging === #

@@ -98,7 +98,8 @@ class RcInputReader:
         self._max_allowed_sled_speed  = 0
         
         # Zero Button
-        self._zero_button_tripped = False
+        self._zero_button_tripped = False  # Indicates if the zero button was tripped this cycle
+        self._zero_button_pressed = False  # Indicates if the zero button is currently depressed
         self.on_zero_button_change = Zero_Button_Event()
         
         # Throttle PWM signal variables
@@ -225,13 +226,11 @@ class RcInputReader:
     @property
     def zero_button_tripped(self) -> bool:
         return self._zero_button_tripped
-    
-    @zero_button_tripped.setter
-    def zero_button_tripped(self, value: bool) -> None:
-        if self._zero_button_tripped != value:
-            self._zero_button_tripped = value
-            self.on_zero_button_change.notify(value)
-            self.logger.info("Zero button tripped. Notifying encoder class.")
+            
+    def consume_zero_button_tripped(self) -> bool:
+        was_tripped = self._zero_button_tripped
+        self._zero_button_tripped = False
+        return was_tripped
     # === #
     
     # === Callback Handlers === #
@@ -335,8 +334,13 @@ class RcInputReader:
         """
         Determines if zero-limit button is tripped.
         """
-        if level == 1:  # Button pressed
-            self.zero_button_tripped = True
+        if level == 1:    # Button pressed
+            self._zero_button_pressed = True
+            self._zero_button_tripped = True
+            self.on_zero_button_change.notify(True)
+            self.logger.info("Zero button tripped. Notifying encoder class.")
+        elif level == 0:  # Button released
+            self._zero_button_pressed = False
     # === #
     
     # === Logic Handlers === #
@@ -505,7 +509,7 @@ class RcInputReader:
             steering_direction       = self._steering_direction,
             max_allowed_sled_speed   = self._max_allowed_sled_speed,
             max_allowed_tower_speed  = self._max_allowed_tower_speed,
-            zero_button_tripped      = self._zero_button_tripped,
+            zero_button_tripped      = self.consume_zero_button_tripped(),
             now_tick                 = self.pi.get_current_tick()
         )
     # === #
@@ -516,11 +520,6 @@ class RcInputReader:
         self.logger.debug(f"Steering direction: {self._steering_direction}")
         self.logger.debug(f"Max tower speed: {self._max_allowed_tower_speed}")
         self.logger.debug(f"Max sled speed: {self._max_allowed_sled_speed}")
-        
-        # Log when changed
-        if self._zero_button_tripped:
-            self.logger.debug("Zero button tripped")
-            self.zero_button_tripped = False
     # === #
     
 class ThrottleController:
@@ -756,8 +755,9 @@ class RigController:
         # === #
         
         # === Runtime Variables === #
-        self._tower_command = 0.0
-        self._sled_command  = None
+        self._tower_command       = 0.0
+        self._sled_command        = None
+        self._zero_button_tripped = False
         # === #
         
         # === Logger Config === #
@@ -772,9 +772,9 @@ class RigController:
         Returns:
             tuple: Tower and Sled commands
         """
-    
         # Poll RcInputReader
         rc = self.rc_input.poll()
+        self._zero_button_tripped = rc.zero_button_tripped
         
         # Update ThrottleController
         self.throttle.update(rc)
@@ -796,6 +796,10 @@ class RigController:
     def disconnect(self) -> None:
         self.rc_input.disconnect()
     
+    @property
+    def zero_button_tripped(self) -> bool:
+        return self._zero_button_tripped
+    
     def subscribe_zero_button(self, callback) -> None:
         """
         Subscription method for zero button flagging.
@@ -813,6 +817,8 @@ class RigController:
         Returns sled command.
         """
         return self._sled_command
+    
+    
     # === #
     
     # === Logging === #
@@ -823,4 +829,7 @@ class RigController:
         self.rc_input.log_debug_values()
         self.throttle.log_debug_values()
         self.steering.log_debug_values()
+        
+        if self._zero_button_tripped:
+            self.logger.debug("Zero button tripped")
     # === #

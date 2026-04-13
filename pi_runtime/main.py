@@ -91,9 +91,6 @@ def main() -> None:
     driver  = AF160(throttle_channel=tower_channel, steering_channel=sled_channel, enable_steering=enable_steering)
     encoder = E5_with_Pico_USB()
     
-    # Configure zero button flagger
-    rig.subscribe_zero_button(encoder.handle_zero_button_tripped)
-    
     # Runtime constants
     enc_max            = encoder.get_encoder_max()    # Encoder max position
     slow_region        = 0.1                          # Slow-down region
@@ -107,6 +104,109 @@ def main() -> None:
     enc_vel                 = encoder.get_velocity()            # Initial encoder velocity
     enc_connected           = encoder.get_encoder_connection()  # Indicates encoder connection
     tower_cmd = sled_cmd    = 0                                 # Initial control commands
+    
+    # === Tower initialization === #
+    tower_move_gentle = 0.05
+    """
+    Tower initialization protocol:
+        *Operator should ensure that tower is fully lowered before power-on.*
+
+        1. 3 second pause for safety.
+        2. Verify that zero button is functioning.
+        3. Slowly raise the tower.
+        4. Stop when position stops changing / velocity is zero. Record position.
+        5. Slowly lower the tower.
+        6. Stop when zero button is hit. Record position offset/drift if present.
+    """
+    # --- Step 1: Safety delay --- #
+    time.sleep(3)  # 3 second pause
+    
+    # --- Step 2: Zero button verification --- #
+    zero_button_operable = False
+    
+    # Tower is expected to start at zero. Ensure this
+    enc_pos = encoder.get_position()
+    if enc_pos != 0:
+        encoder.set_zero_position()
+        enc_pos = encoder.get_position()
+        
+    # Gently raise tower
+    driver.send_payloads(tower_move_gentle, None)       # Gentle raise
+    time.sleep(3)                                       # 1 second raise
+    driver.send_payloads(0, None)                       # End raise
+    enc_pos = encoder.get_position()
+    
+    # Ensure zero button flag is not tripped
+    rig.update()
+    
+    # Gently lower tower until velocity = 0
+    driver.send_payloads(-1 * tower_move_gentle, None)  # Gentle lower
+    while encoder.get_average_velocity() != 0:
+        time.sleep(0.1)                                 # Brief pause
+    driver.send_payloads(0, None)                       # End lower
+    
+    # Check for button trip and encoder position
+    rig.update()
+    enc_pos = encoder.get_position()
+    trip1 = rig.zero_button_tripped
+    if enc_pos != 0:
+        logging.warning(f"Encoder drifted during initialization step 2 (first pass) by {enc_pos}")
+        encoder.set_zero_position()
+        
+    # Gently raise tower
+    driver.send_payloads(tower_move_gentle, None)       # Gentle raise
+    time.sleep(3)                                       # 1 second raise
+    driver.send_payloads(0, None)                       # End raise
+    enc_pos = encoder.get_position()
+    
+    # Ensure zero button flag is not tripped
+    rig.update()
+    
+    # Gently lower tower until velocity = 0
+    driver.send_payloads(-1 * tower_move_gentle, None)  # Gentle lower
+    while encoder.get_average_velocity() != 0:
+        time.sleep(0.1)                                 # Brief pause
+    driver.send_payloads(0, None)                       # End lower
+    
+    # Check for button trip and encoder position
+    rig.update()
+    enc_pos = encoder.get_position()
+    trip2 = rig.zero_button_tripped
+    if enc_pos != 0:
+        logging.warning(f"Encoder drifted during initialization step 2 (second pass) by {enc_pos}")
+        encoder.set_zero_position()
+        
+    # Zero button operable if tripped both times
+    if trip1 and trip2:
+        zero_button_operable = True
+        
+    # --- Step 3: Slowly raise the tower to top --- 
+    enc_pos = encoder.get_position()
+    driver.send_payloads(tower_move_gentle, None)
+    while encoder.get_average_velocity() != 0:
+        time.sleep(0.1)
+    driver.send_payloads(0, None)
+    
+    # --- Step 4: Record max position ---
+    enc_pos = encoder.get_position()
+    enc_max = enc_pos
+    encoder.set_encoder_max(enc_max)
+    
+    # --- Step 5: Slowly lower the tower to bottom ---
+    driver.send_payloads(-1 * tower_move_gentle, None)
+    while encoder.get_average_velocity() != 0:
+        time.sleep(0.1)
+    driver.send_payloads(0, None)
+        
+    # --- Step 6: Record lowest position ---
+    enc_pos = encoder.get_position()
+    if enc_pos != 0:
+        logging.warning(f"Encoder drifted during initialization step 5 by {enc_pos}")    
+    # === #
+    
+    # Configure zero button flagger if button is operable
+    if zero_button_operable:
+        rig.subscribe_zero_button(encoder.handle_zero_button_tripped)
     
     # Main loop
     try:
