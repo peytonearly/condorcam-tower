@@ -244,9 +244,9 @@ def main() -> None:
         pi.stop()
         logging.info("Clean shutdown complete.")
         try:
-            logging.info(f"Average loop time: {timer_sum / timer_cnt}")
-            logging.info(f"Fastest loop time: {timer_low}")
-            logging.info(f"Slowest loop time: {timer_high}")
+            logging.info(f"Average loop time: {(timer_sum / timer_cnt) / 1_000_000_000} s")
+            logging.info(f"Fastest loop time: {timer_low / 1_000_000_000} s")
+            logging.info(f"Slowest loop time: {timer_high / 1_000_000_000} s")
         except ZeroDivisionError:
             pass
         
