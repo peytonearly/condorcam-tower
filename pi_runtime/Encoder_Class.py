@@ -20,7 +20,7 @@ class E5_with_Pico_USB:
         # === Serial Connection === #
         self.ser                = None            # Serial connection
         self.encoder_connected  = False           # Indicates connection to the Pico
-        self.ser_port           = "/dev/ttyAMC0"  # Serial port
+        self.ser_port           = "/dev/ttyACM0"  # Serial port
         self.timeout            = 0.25            # Serial read timeout (s)
         self.connect_timeout    = 3.0             # Connection timeout limit (s)
         # === #
