@@ -24,7 +24,7 @@ def main() -> None:
     encoder = E5_with_Pico_USB()
     
     # Runtime constants
-    command_time = 5.0        # Number of seconds to hold velocity
+    command_time = 10  # Number of seconds to hold velocity
     tower_up = -0.1
     tower_down = 0.03
     tower_hold = -0.05
