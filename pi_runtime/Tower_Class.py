@@ -7,7 +7,7 @@ from statistics import median
 from dataclasses import dataclass
 
 # Project Modules
-from Event_Class import Zero_Button_Event
+from pi_runtime.Event_Class import Zero_Button_Event
 
 @dataclass(frozen=True)
 class Constants:

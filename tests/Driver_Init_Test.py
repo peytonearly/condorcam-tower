@@ -3,8 +3,8 @@ import os
 import logging
 
 # Project Modules
-from ..pi_runtime import Utils
-from ..pi_runtime.Driver_Class import AF160
+from pi_runtime import Utils
+from pi_runtime.Driver_Class import AF160
 
 def main() -> None:
     # Start the logger

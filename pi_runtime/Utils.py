@@ -6,7 +6,7 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 
 # Project Modules
-import State
+from pi_runtime import State
 
 LEFT  = 0  # Driver left output is channel 0
 RIGHT = 1  # Driver right output is channel 1
