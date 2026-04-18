@@ -221,7 +221,7 @@ def main() -> None:
                 sled_cmd = None
                 
             # Send motor commands
-            driver.send_payloads(throttle_input = tower_cmd, steering_input = sled_cmd)
+            driver.send_payloads(throttle_input = -1 * tower_cmd, steering_input = sled_cmd)
             
             # Log debug values
             rig.log_debug_values()
