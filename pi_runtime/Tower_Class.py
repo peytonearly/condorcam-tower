@@ -81,16 +81,6 @@ class RcInputReader:
         self._pin_channel5    = 25  # PWM input from RC controller channel 5 knob
         # === #
         
-        # === Deques === #
-        size_limit = 7
-        self.throttle_dq = deque([self._throttle_neutral_us[self._pedals_connected] for _ in range(size_limit)], maxlen=size_limit)  # Deque for throttle high time
-        self.steering_dq = deque([self._steering_neutral_us                         for _ in range(size_limit)], maxlen=size_limit)  # Deque for steering high time
-        self.channel3_dq = deque([self._channel3_off_us                             for _ in range(size_limit)], maxlen=size_limit)  # Deque for channel 3 high time
-        self.channel4_dq = deque([self._channel4_1_us                               for _ in range(size_limit)], maxlen=size_limit)  # Deque for channel 4 high time
-        self.channel5_dq = deque([self._channel_left_us                             for _ in range(size_limit)], maxlen=size_limit)  # Deque for channel 5 high time
-        self.channel6_dq = deque([self._channel_left_us                             for _ in range(size_limit)], maxlen=size_limit)  # Deque for channel 6 high time
-        # === #
-        
         # === Runtime Variables === #
         self._pedals_connected        = False  # Indicates if the pedals are connected based on channel 3 state. False/0 for off | True/1 for on
         self._steering_direction      = 1      # Tracks which direction the sled moves per given steering input direction (1 or -1 multiplier)
@@ -143,6 +133,16 @@ class RcInputReader:
         self._channel6_last_rising_tick = None
         self._channel6_last_period_tick = None
         self._channel6_period           = 0
+        # === #
+        
+        # === Deques === #
+        size_limit = 7
+        self.throttle_dq = deque([self._throttle_neutral_us[self._pedals_connected] for _ in range(size_limit)], maxlen=size_limit)  # Deque for throttle high time
+        self.steering_dq = deque([self._steering_neutral_us                         for _ in range(size_limit)], maxlen=size_limit)  # Deque for steering high time
+        self.channel3_dq = deque([self._channel3_off_us                             for _ in range(size_limit)], maxlen=size_limit)  # Deque for channel 3 high time
+        self.channel4_dq = deque([self._channel4_1_us                               for _ in range(size_limit)], maxlen=size_limit)  # Deque for channel 4 high time
+        self.channel5_dq = deque([self._channel_left_us                             for _ in range(size_limit)], maxlen=size_limit)  # Deque for channel 5 high time
+        self.channel6_dq = deque([self._channel_left_us                             for _ in range(size_limit)], maxlen=size_limit)  # Deque for channel 6 high time
         # === #
         
         # === Logger Config === #
