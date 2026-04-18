@@ -143,9 +143,9 @@ def main() -> None:
         exit()
         
     # Class constants
-    enable_steering = False  # Indicates if the sled is connected
-    tower_channel   = 1      # Indicates which channel the tower is connected to (0 for left, 1 for right)
-    sled_channel    = 1      # Indicates which channel the sled is connected to (0 for left, 1 for right)
+    enable_steering = False        # Indicates if the sled is connected
+    tower_channel   = Utils.RIGHT  # Indicates which channel the tower is connected to (0 for left, 1 for right)
+    sled_channel    = Utils.LEFT   # Indicates which channel the sled is connected to (0 for left, 1 for right)
     
     # Class instances
     rig     = RigController(pi=pi, enable_steering=enable_steering)
@@ -162,7 +162,7 @@ def main() -> None:
     # Runtime variables
     tower_input, sled_input = rig.update()                      # Initial control inputs
     enc_pos                 = encoder.get_position()            # Initial encoder position
-    enc_vel                 = encoder.get_velocity()            # Initial encoder velocity
+    enc_vel                 = encoder.get_average_velocity()    # Initial encoder velocity (average)
     enc_connected           = encoder.get_encoder_connection()  # Indicates encoder connection
     tower_cmd = sled_cmd    = 0                                 # Initial control commands
     
