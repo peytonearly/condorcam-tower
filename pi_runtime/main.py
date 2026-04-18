@@ -167,7 +167,8 @@ def main() -> None:
     tower_cmd = sled_cmd    = 0                                 # Initial control commands
     
     # Run tower initialization
-    zero_button_operable, enc_init_offsets = initialize_tower(rig, driver, encoder)
+    # zero_button_operable, enc_init_offsets = initialize_tower(rig, driver, encoder)
+    zero_button_operable = True
     
     # Configure zero button flagger if button is operable
     if zero_button_operable:
