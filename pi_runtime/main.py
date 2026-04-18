@@ -130,7 +130,7 @@ def initialize_tower(rig: RigController, driver: AF160, encoder: E5_with_Pico_US
 def main() -> None:
     # Start the logger
     os.makedirs("logs", exist_ok=True)
-    Utils.setup_logging(console_logging = False)
+    Utils.setup_logging(console_logging = True)
     
     # Signal interrupt
     signal.signal(signal.SIGINT, Utils.signal_handler)
@@ -208,7 +208,7 @@ def main() -> None:
                             tower_cmd = rig.throttle.upper_region(enc_pos, enc_max)
                 else:
                     # Hold tower position
-                    tower_cmd = rig.throttle.position_hold(enc_vel)
+                    # tower_cmd = rig.throttle.position_hold(enc_vel)
                     tower_cmd = -0.05
                     
             else:              # When encoder not connected, use middle region at slower speeds
