@@ -243,3 +243,8 @@ class E5_with_Pico_USB:
         self.logger.debug(f"Encoder velocity: {self.enc_vel_dq[-1]}")
         self.logger.debug(f"Encoder velocity (average): {sum(self.enc_vel_dq) / len(self.enc_vel_dq)}")
     # === #
+    
+if __name__ == "__main__":
+    encoder = E5_with_Pico_USB()
+    encoder.set_zero_position()
+    print(f"Encoder position set to: {encoder.get_position()}")
