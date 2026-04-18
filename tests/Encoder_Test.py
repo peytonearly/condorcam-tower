@@ -85,7 +85,6 @@ def main() -> None:
             driver.log_debug_values()
             encoder.log_debug_values()
             
-            time.sleep(0.1)  # Brief pause
             timer_loop_end = time.time()
             
             # Check if command should be changed
