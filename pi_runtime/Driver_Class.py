@@ -162,7 +162,7 @@ class AF160:
         Scales motor input to fall within range of -255 to 255.
         """
         input = max(-1.0, min(1.0, input))  # Clamp between -1.0 and +1.0
-        return int(input * -255)
+        return int(input * 255)
     # === #
     
     # === Serial Commands === #    

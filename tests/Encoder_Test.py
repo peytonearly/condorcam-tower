@@ -24,20 +24,19 @@ def main() -> None:
     encoder = E5_with_Pico_USB()
     
     # Runtime constants
-    command_time = 5.0  # Number of seconds to hold velocity
-    tower_move_gentle = 0.05      # Gentle tower movement command
+    command_time = 5.0        # Number of seconds to hold velocity
+    tower_move_gentle = 0.1  # Gentle tower movement command
     
     # Runtime variables
     enc_pos = encoder.get_position()
     enc_vel = encoder.get_velocity()
     enc_vel_avg = encoder.get_average_velocity()
-    last_command = -1 * tower_move_gentle
+    last_command = tower_move_gentle
     cur_command = 0
     
     # Time-keeping variables (seconds)
     timer_loop_start = None
     timer_loop_end = None
-    timer_loop = None
     
     # Main loop
     try:
@@ -48,19 +47,19 @@ def main() -> None:
                 # Determine next command
                 match last_command:
                     case _ if last_command == (-1 * tower_move_gentle) and cur_command == 0.0:
-                        # Tower was zeroed after moving down -> move up
+                        # Tower was zeroed after moving up -> move down
                         last_command = cur_command
                         cur_command  = tower_move_gentle
                     case _ if last_command == 0.0 and cur_command == (tower_move_gentle):
-                        # Tower was moving up after being zeroed -> zero
+                        # Tower was moving down after being zeroed -> zero
                         last_command = cur_command
                         cur_command  = 0.0
                     case _ if last_command == (tower_move_gentle) and cur_command == 0.0:
-                        # Tower was zeroed after moving up -> move down
+                        # Tower was zeroed after moving down -> move up
                         last_command = cur_command
                         cur_command  = -1 * tower_move_gentle
                     case _ if last_command == 0.0 and cur_command == (-1 * tower_move_gentle):
-                        # Tower was moving down after being zeroed -> zero
+                        # Tower was moving up after being zeroed -> zero
                         last_command = cur_command
                         cur_command  = 0.0
                         
