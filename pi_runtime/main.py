@@ -168,7 +168,7 @@ def main() -> None:
     
     # Run tower initialization
     # zero_button_operable, enc_init_offsets = initialize_tower(rig, driver, encoder)
-    zero_button_operable = True
+    zero_button_operable = False
     
     # Configure zero button flagger if button is operable
     if zero_button_operable:
@@ -209,6 +209,7 @@ def main() -> None:
                 else:
                     # Hold tower position
                     tower_cmd = rig.throttle.position_hold(enc_vel)
+                    tower_cmd = -0.05
                     
             else:              # When encoder not connected, use middle region at slower speeds
                 tower_cmd = rig.throttle.middle_region() * no_enc_slow_factor
