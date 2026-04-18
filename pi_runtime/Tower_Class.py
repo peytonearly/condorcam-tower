@@ -734,6 +734,7 @@ class SteeringController:
     def log_debug_values(self) -> None:
         self.logger.debug(f"Steering input (unsmooth): {self._steering_input_unsmooth}")
         self.logger.debug(f"Steering input (smooth): {self.steering_input}")
+    # === #
     
 class RigController:
     def __init__(self, pi: pigpio.pi, enable_steering: bool = False):
@@ -826,7 +827,8 @@ class RigController:
         """
         self.rc_input.log_debug_values()
         self.throttle.log_debug_values()
-        self.steering.log_debug_values()
+        if self.steering is not None:
+            self.steering.log_debug_values()
         
         if self._zero_button_tripped:
             self.logger.debug("Zero button tripped")

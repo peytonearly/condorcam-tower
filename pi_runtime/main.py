@@ -243,9 +243,12 @@ def main() -> None:
         encoder.disconnect()
         pi.stop()
         logging.info("Clean shutdown complete.")
-        logging.info(f"Average loop time: {timer_sum / timer_cnt}")
-        logging.info(f"Fastest loop time: {timer_low}")
-        logging.info(f"Slowest loop time: {timer_high}")
+        try:
+            logging.info(f"Average loop time: {timer_sum / timer_cnt}")
+            logging.info(f"Fastest loop time: {timer_low}")
+            logging.info(f"Slowest loop time: {timer_high}")
+        except ZeroDivisionError:
+            pass
         
 if __name__ == "__main__":
     main()
