@@ -209,7 +209,7 @@ def main() -> None:
                 else:
                     # Hold tower position
                     # tower_cmd = rig.throttle.position_hold(enc_vel)
-                    tower_cmd = -0.05
+                    tower_cmd = 0.05
                     
             else:              # When encoder not connected, use middle region at slower speeds
                 tower_cmd = rig.throttle.middle_region() * no_enc_slow_factor
