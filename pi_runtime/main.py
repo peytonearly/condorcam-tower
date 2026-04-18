@@ -2,69 +2,16 @@
 import os
 import sys
 import time
-import types
 import pigpio
 import signal
 import logging
-from datetime import datetime
-from logging.handlers import RotatingFileHandler
 
-# Project Libraries
+# Project Modules
+import State
+import Utils
 from Tower_Class import RigController
 from Driver_Class import AF160
 from Encoder_Class import E5_with_Pico_USB
-
-# === Global Variables === #
-signal_received = False  # Tracks if an interrupt signal has been received
-console_logging = False  # Indicates if the logger should output to the console
-# === #
-
-# === Helpers === #
-class MicrosecondFormatter(logging.Formatter):
-    """
-    Custom formatter to include microsecond-precision timestamps.
-    """
-    def formatTime(self, record: logging.LogRecord, datefmt: str | None =None) -> datetime.strftime:
-        dt = datetime.fromtimestamp(record.created)
-        if datefmt:
-            return dt.strftime(datefmt)
-        return dt.strftime("%Y-%m-%d %H:%M:%S.%f")
-    
-def setup_logging() -> None:
-    """
-    Configures the logger.
-    """
-    logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
-    
-    # Formatter
-    formatter = MicrosecondFormatter(
-        fmt="%(asctime)s [ %(levelname)s ] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S.%f"
-    )
-    
-    # Rotating file handler (5 files, 100 MB each)
-    file_handler = RotatingFileHandler("logs/system.log", maxBytes=100_000_000, backupCount=5)
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-    
-    # Create console handler if specified
-    global console_logging
-    if console_logging:
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.INFO)
-        console_handler.setFormatter(formatter)
-        logger.addHandler(console_handler)
-        
-def signal_handler(signum: int, frame: types.FrameType | None) -> None:
-    """
-    Handles interrupt signals.
-    """
-    global signal_received
-    signal_received = True
-    logging.info(f"Signal {signum} received")
-# === #
 
 # === Tower initialization === #
 def initialize_tower(rig: RigController, driver: AF160, encoder: E5_with_Pico_USB) -> tuple[bool, list]:
@@ -183,12 +130,11 @@ def initialize_tower(rig: RigController, driver: AF160, encoder: E5_with_Pico_US
 def main() -> None:
     # Start the logger
     os.makedirs("logs", exist_ok=True)
-    setup_logging()
+    Utils.setup_logging(console_logging = False)
     
     # Signal interrupt
-    global signal_received
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, Utils.signal_handler)
+    signal.signal(signal.SIGTERM, Utils.signal_handler)
     
     # Pigpio connection
     pi = pigpio.pi()
@@ -240,7 +186,7 @@ def main() -> None:
     try:
         logging.info("Beginning loop")
         
-        while not signal_received:
+        while not State.signal_received.is_set():
             # Start timer
             timer_start = time.perf_counter_ns()
             
@@ -288,7 +234,7 @@ def main() -> None:
             if timer_loop < timer_low: timer_low = timer_loop    # Update fastest time
             if timer_loop > timer_high: timer_high = timer_loop  # Update slowest time
     finally:
-        if signal_received:
+        if State.signal_received.is_set():
             logging.warning("Interrupt signal received. Closing program...")
         rig.disconnect()
         driver.disconnect()

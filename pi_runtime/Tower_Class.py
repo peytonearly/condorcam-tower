@@ -6,7 +6,7 @@ from collections import deque
 from statistics import median
 from dataclasses import dataclass
 
-# Project Libraries
+# Project Modules
 from Event_Class import Zero_Button_Event
 
 @dataclass(frozen=True)
@@ -817,8 +817,6 @@ class RigController:
         Returns sled command.
         """
         return self._sled_command
-    
-    
     # === #
     
     # === Logging === #
