@@ -25,13 +25,15 @@ def main() -> None:
     
     # Runtime constants
     command_time = 5.0        # Number of seconds to hold velocity
-    tower_move_gentle = 0.1  # Gentle tower movement command
+    tower_up = -0.1
+    tower_down = 0.3
+    tower_hold = -0.05
     
     # Runtime variables
     enc_pos = encoder.get_position()
     enc_vel = encoder.get_velocity()
     enc_vel_avg = encoder.get_average_velocity()
-    last_command = tower_move_gentle
+    last_command = tower_down
     cur_command = 0
     
     # Time-keeping variables (seconds)
@@ -45,23 +47,23 @@ def main() -> None:
         while not State.signal_received.is_set():
             if timer_loop_start is None:
                 # Determine next command
-                match last_command:
-                    case _ if last_command == (-1 * tower_move_gentle) and cur_command == 0.0:
-                        # Tower was zeroed after moving up -> move down
-                        last_command = cur_command
-                        cur_command  = tower_move_gentle
-                    case _ if last_command == 0.0 and cur_command == (tower_move_gentle):
-                        # Tower was moving down after being zeroed -> zero
-                        last_command = cur_command
-                        cur_command  = 0.0
-                    case _ if last_command == (tower_move_gentle) and cur_command == 0.0:
-                        # Tower was zeroed after moving down -> move up
-                        last_command = cur_command
-                        cur_command  = -1 * tower_move_gentle
-                    case _ if last_command == 0.0 and cur_command == (-1 * tower_move_gentle):
-                        # Tower was moving up after being zeroed -> zero
-                        last_command = cur_command
-                        cur_command  = 0.0
+                match cur_command:
+                        case _ if cur_command == 0 and last_command == tower_down:
+                            # Was 0 after moving down -> move up
+                            last_command = cur_command
+                            cur_command = tower_up
+                        case _ if cur_command == tower_up and last_command == 0:
+                            # Was moving up after zeroed -> hold
+                            last_command = cur_command
+                            cur_command = tower_hold
+                        case _ if cur_command == tower_hold and last_command == tower_up:
+                            # Was holding after moving up -> move down
+                            last_command = cur_command
+                            cur_command = tower_down
+                        case _ if cur_command == tower_down and last_command == tower_hold:
+                            # Was moving down after holding -> zero
+                            last_command = cur_command
+                            cur_command = 0
                         
                 driver.send_payloads(cur_command, None)
                     
