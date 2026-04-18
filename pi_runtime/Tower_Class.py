@@ -16,8 +16,8 @@ class Constants:
     deadzone:           float = 0.3        # Deadzone (% of controller input)
     input_min:          float = 0.01       # Minimum input value that will be acted on
     speed_limiter:      float = 0.3        # Limits the speed at ends of tower travel
-    ema_alpha_throttle: float = 0.2        # Throttle smoothing factor. Lower numbers are smoother, higher numbers are more responsive
-    ema_alpha_steering: float = 0.2        # Steering smoothing factor. Lower numbers are smoother, higher numbers are more resposnive
+    ema_alpha_throttle: float = 0.1        # Throttle smoothing factor. Lower numbers are smoother, higher numbers are more responsive
+    ema_alpha_steering: float = 0.1        # Steering smoothing factor. Lower numbers are smoother, higher numbers are more resposnive
 
 @dataclass
 class RcInputState:
