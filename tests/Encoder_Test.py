@@ -5,10 +5,10 @@ import signal
 import logging
 
 # Project Modules
-from pi_runtime import Utils
-from pi_runtime import State
-from pi_runtime.Driver_Class import AF160
-from pi_runtime.Encoder_Class import E5_with_Pico_USB
+from ..pi_runtime import Utils
+from ..pi_runtime import State
+from ..pi_runtime.Driver_Class import AF160
+from ..pi_runtime.Encoder_Class import E5_with_Pico_USB
 
 def main() -> None:
     # Start the logger
