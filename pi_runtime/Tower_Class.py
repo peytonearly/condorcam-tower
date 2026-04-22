@@ -531,10 +531,13 @@ class ThrottleController:
         
         # Timing
         self._input_timeout = constants.input_timeout
+        
+        # Received variables
+        self.enc_max = 8000
         # === #
         
         # === Runtime Variables === #
-        self.active_zone               = -1  # Tracks what zone is in use
+        self.active_zone               = 0  # Tracks what zone is in use
         self._max_allowed_tower_speed  = 0
         self._throttle_input_unsmooth  = 0
         self.throttle_input            = 0
@@ -609,8 +612,7 @@ class ThrottleController:
                     self.min_hold_speed += 0.01  # Increase speed by 1%
                     self._last_min_hold_tick = self._rc_now_tick
         
-        self.active_zone = 0
-        self.logger.info("Holding tower position")
+        self.active_zone = 1
         return self.min_hold_speed
     
     def lower_region(self, position: int) -> float:
@@ -619,17 +621,19 @@ class ThrottleController:
         
         Includes safety condition for tower being in negative positions.
         """
-        self.active_zone = 1
-        self.logger.info(f"Tower in lower zone, {'moving up' if self.throttle_input > 0 else 'moving down' if self.throttle_input < 0 else 'holding'}")
+        self.active_zone = 2
         
-        if self.throttle_input > 0:                     # Moving up
+        if self.throttle_input > 0:  # Moving up
             return self.throttle_input * self._max_allowed_tower_speed
+        
         elif self.throttle_input < 0 and position > 0:  # Moving down, above zero
             return self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter
+        
         elif self.throttle_input < 0 and position < 0:  # Moving down, below zero - proceed with caution
-            self.logger.warning("Tower below zero point. Killing input for this cycle.")
-            # return self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter * 0.1
+            self.active_zone = -2
+            # self.logger.warning("Tower below zero point. Killing input for this cycle.")
             return 0
+        
         else:
             return 0
     
@@ -637,28 +641,29 @@ class ThrottleController:
         """
         Handles the tower being in the middle of it's travel region.
         """
-        self.active_zone = 2
-        self.logger.info(f"Tower in middle zone, moving {'up' if self.throttle_input > 0 else 'down'}")
+        self.active_zone = 3
         
         return self.throttle_input * self._max_allowed_tower_speed
     
-    def upper_region(self, position: int, max_position: int) -> float:
+    def upper_region(self, position: int) -> float:
         """
         Handles the tower being in the upper 10% of its travel region.
         
         Includes safety condition for tower being above expected max position.
         """
-        self.active_zone = 3
-        self.logger.info(f"Tower in upper zone, {'moving down' if self.throttle_input < 0 else 'moving up' if self.throttle_input > 0 else 'holding'}")
+        self.active_zone = 4
         
-        if self.throttle_input < 0:                                # Moving down
+        if self.throttle_input < 0:  # Moving down
             return self.throttle_input * self._max_allowed_tower_speed
-        elif self.throttle_input > 0 and position < max_position:  # Moving up, below max
+        
+        elif self.throttle_input > 0 and position < self.enc_max:  # Moving up, below max
             return self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter
-        elif self.throttle_input > 0 and position > max_position:  # Moving up, above max - proceed with caution
-            self.logger.warning("Tower above max point. Killing input for this cycle.")
+        
+        elif self.throttle_input > 0 and position > self.enc_max:  # Moving up, above max - proceed with caution
+            self.active_zone = -4
             # return self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter * 0.1
             return 0
+        
         else:
             return 0
     # === #
@@ -666,11 +671,17 @@ class ThrottleController:
     # === Public Interface === #
     def get_min_hold_speed(self) -> float:
         return self.min_hold_speed
+    
+    def update_enc_max(self, enc_max: int) -> None:
+        """
+        Updates encoder max value used in tower position calculations.
+        """
+        self.enc_max = enc_max
     # === #
     
     # === Logging === #
     def log_debug_values(self) -> None:
-        self.logger.debug(f"Throttle input (unsmooth): {self._throttle_input_unsmooth}")
+        # self.logger.debug(f"Throttle input (unsmooth): {self._throttle_input_unsmooth}")
         self.logger.debug(f"Throttle input (smooth): {self.throttle_input}")
         self.logger.debug(f"Active zone: {self.active_zone}")
         
@@ -732,7 +743,7 @@ class SteeringController:
     
     # === Logging === #
     def log_debug_values(self) -> None:
-        self.logger.debug(f"Steering input (unsmooth): {self._steering_input_unsmooth}")
+        # self.logger.debug(f"Steering input (unsmooth): {self._steering_input_unsmooth}")
         self.logger.debug(f"Steering input (smooth): {self.steering_input}")
     # === #
     
@@ -818,6 +829,12 @@ class RigController:
         Returns sled command.
         """
         return self._sled_command
+    
+    def update_enc_max(self, enc_max: int) -> None:
+        """
+        Allows the main function to update encoder max value used in ThrottleController class functions.
+        """
+        self.throttle.update_enc_max(enc_max)
     # === #
     
     # === Logging === #

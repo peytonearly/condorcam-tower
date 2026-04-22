@@ -183,6 +183,9 @@ def main() -> None:
     timer_high  = 0            # Initialize to 0
     timer_low   = sys.maxsize  # Initialize to largest int possible
     
+    # Deliver constants
+    rig.update_enc_max(enc_max)
+    
     # Main loop
     try:
         logging.info("Beginning loop")
@@ -198,20 +201,15 @@ def main() -> None:
             
             # Determine tower command
             if enc_connected:  # When encoder connected, use zone handlers
-                if tower_input != 0.0:
-                    match enc_pos:
-                        case _ if enc_pos <= lower_region:                # Tower in lower region
-                            tower_cmd = rig.throttle.lower_region(enc_pos)
-                        case _ if lower_region < enc_pos < upper_region:  # Tower in middle region
-                            tower_cmd = rig.throttle.middle_region()
-                        case _ if enc_pos >= upper_region:                # Tower in upper region
-                            tower_cmd = rig.throttle.upper_region(enc_pos, enc_max)
+                if tower_input:
+                    if (enc_pos <= lower_region):               tower_cmd = rig.throttle.lower_region(enc_pos)           # Tower in lower region
+                    if (lower_region < enc_pos < upper_region): tower_cmd = rig.throttle.middle_region()                 # Tower in middle region
+                    if (enc_pos >= upper_region):               tower_cmd = rig.throttle.upper_region(enc_pos, enc_max)  # Tower in upper region
                 else:
-                    # Hold tower position
-                    # tower_cmd = rig.throttle.position_hold(enc_vel)
+                    # tower_cmd = rig.throttle.position_hold(enc_vel)  # Hold tower position
                     tower_cmd = 0.05
                     
-            else:              # When encoder not connected, use middle region at slower speeds
+            else:  # When encoder not connected, use middle region at slower speeds
                 tower_cmd = rig.throttle.middle_region() * no_enc_slow_factor
                 
             # Determine sled command
