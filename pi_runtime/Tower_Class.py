@@ -96,9 +96,6 @@ class RcInputReader:
         self._throttle_last_edge_tick   = None
         self._throttle_last_rising_tick = None
         self._throttle_last_period_tick = None
-        self._throttle_last_input_tick  = None
-        self._throttle_input_timed_out  = True
-        self._throttle_high_time        = 0
         self._throttle_period           = 0
         self._throttle_input_unsmooth   = 0
         
@@ -106,7 +103,6 @@ class RcInputReader:
         self._steering_last_edge_tick   = None
         self._steering_last_rising_tick = None
         self._steering_last_period_tick = None
-        self._steering_high_time        = 0
         self._steering_period           = 0
         self._steering_input_unsmooth   = 0
         
@@ -247,8 +243,6 @@ class RcInputReader:
                     pulse = pigpio.tickDiff(self._throttle_last_rising_tick, tick)
                     if 1000 <= pulse <= 2200:
                         self.throttle_dq.append(pulse)
-                    else:
-                        self.logger.debug(f"Ignored invalid throttle pulse width: {pulse}")
     
     def _handle_steering_pwm(self, gpio: int, level: int, tick: int) -> None:
         with self._lock_steering:
@@ -263,8 +257,6 @@ class RcInputReader:
                     pulse = pigpio.tickDiff(self._steering_last_rising_tick, tick)
                     if 1000 <= pulse <= 2200:
                         self.steering_dq.append(pulse)
-                    else:
-                        self.logger.debug(f"Ignored invalid steering pulse width: {pulse}")
     
     def _handle_channel3_pwm(self, gpio: int, level: int, tick: int) -> None:
         with self._lock_channel3:
@@ -279,8 +271,6 @@ class RcInputReader:
                     pulse = pigpio.tickDiff(self._channel3_last_rising_tick, tick)
                     if 850 <= pulse <= 2000:
                         self.channel3_dq.append(pulse)
-                    else:
-                        self.logger.debug(f"Ignored invalid channel 3 pulse width: {pulse}")
     
     def _handle_channel4_pwm(self, gpio: int, level: int, tick: int) -> None:
         with self._lock_channel4:
@@ -295,8 +285,6 @@ class RcInputReader:
                     pulse = pigpio.tickDiff(self._channel4_last_rising_tick, tick)
                     if 600 <= pulse <= 2000:
                         self.channel4_dq.append(pulse)
-                    else:
-                        self.logger.debug(f"Ignored invalid channel 4 pulse pulse: {pulse}")
     
     def _handle_channel5_pwm(self, gpio: int, level: int, tick: int) -> None:
         with self._lock_channel5:
@@ -311,8 +299,6 @@ class RcInputReader:
                     pulse = pigpio.tickDiff(self._channel5_last_rising_tick, tick)
                     if 850 <= pulse <= 2200:
                         self.channel5_dq.append(pulse)
-                    else:
-                        self.logger.debug(f"Ignored invalid channel 5 pulse width: {pulse}")
     
     def _handle_channel6_pwm(self, gpio: int, level: int, tick: int) -> None:
         with self._lock_channel6:
@@ -327,8 +313,6 @@ class RcInputReader:
                     pulse = pigpio.tickDiff(self._channel6_last_rising_tick, tick)
                     if 850 <= pulse <= 2200:
                         self.channel6_dq.append(pulse)
-                    else:
-                        self.logger.debug(f"Ignored invalid channel 6 pulse width: {pulse}")
     
     def _handle_zero_button(self, gpio: int, level: int, tick: int) -> None:
         """
@@ -352,7 +336,7 @@ class RcInputReader:
             now = self.pi.get_current_tick()
             if self._throttle_last_edge_tick is None or pigpio.tickDiff(self._throttle_last_edge_tick, now) > self._controller_timeout:
                 # No active signal
-                self._throttle_high_time = self._throttle_period = self.throttle_input_unsmooth = 0.0
+                self._throttle_period = self.throttle_input_unsmooth = 0.0
                 
                 self.logger.warning("No throttle signal from controller")
             
@@ -399,7 +383,7 @@ class RcInputReader:
             now = self.pi.get_current_tick()
             if self._steering_last_edge_tick is None or pigpio.tickDiff(self._steering_last_edge_tick, now) > self._controller_timeout:
                 # No active signal
-                self._steering_high_time = self._steering_period = self._steering_input_unsmooth = 0.0
+                self._steering_period = self._steering_input_unsmooth = 0.0
                 
                 self.logger.warning("No steering signal from controller")
                 
@@ -439,28 +423,17 @@ class RcInputReader:
         Determines if the foot pedals are connected.
         """
         pulse = median(self.channel3_dq)
-        match pulse:
-            case _ if pulse > 1700:  # Button on
-                self._pedals_connected = True
-            case _ if pulse > 1200:  # Button off
-                self._pedals_connected = False
-            case _:                  # Controller off
-                self._pedals_connected = False
+                
+        self._pedals_connected = True if pulse > 1700 else False
     
     def _decode_channel4_input(self) -> None:
         """
         Determines the direction the sled will move with a given steering input.
         """
         pulse = median(self.channel4_dq)
-        match pulse:
-            case _ if pulse > 1700:  # Position 3 - change direction
-                self._steering_direction = -1
-            case _ if pulse > 1500:  # Position 2 - keep last value
-                pass
-            case _ if pulse > 1200:  # Position 1 - change direction
-                self._steering_direction = 1
-            case _:                  # Invalid input - keep last value
-                pass
+        
+        if pulse > 1700: self._steering_direction = -1        # Position 3 - change direction
+        if 1200 < pulse < 1500: self._steering_direction = 1  # Position 1 - change direction
     
     def _decode_channel5_input(self) -> None:
         """
