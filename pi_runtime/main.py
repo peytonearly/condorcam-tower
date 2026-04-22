@@ -214,7 +214,7 @@ def main() -> None:
                 
             # Determine sled command
             if enable_steering:
-                sled_cmd = sled_input * rig.steering.get_steering_direction()
+                sled_cmd = rig.steering.get_steering_command()
             else:
                 sled_cmd = None
                 

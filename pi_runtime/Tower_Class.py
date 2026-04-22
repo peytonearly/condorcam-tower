@@ -533,13 +533,12 @@ class ThrottleController:
         self._input_timeout = constants.input_timeout
         
         # Received variables
-        self.enc_max = 8000
+        self._enc_max = 8000
         # === #
         
         # === Runtime Variables === #
         self.active_zone               = 0  # Tracks what zone is in use
         self._max_allowed_tower_speed  = 0
-        self._throttle_input_unsmooth  = 0
         self.throttle_input            = 0
         
         # Timing
@@ -558,33 +557,30 @@ class ThrottleController:
         self.logger.info("ThrottleController class initialized")
         # === #
     
-    def update(self, rc: RcInputState) -> None:
+    def update(self, rc: RcInputState) -> float:
         """
         Updates variables with current RC state.
+        
+        Returns smoothed throttle input value.
         """
+        # Update internal variables
         self._max_allowed_tower_speed = rc.max_allowed_tower_speed
-        self._throttle_input_unsmooth = rc.throttle_input_unsmooth
         self._rc_now_tick             = rc.now_tick
-    
-    # === Logic Handlers === #
-    def get_command(self) -> float:
-        """
-        Apply smoothing to throttle input value.
-        """
+        
+        # Determine smoothed input
         self.throttle_input = (
-            (self._ema_alpha * self._throttle_input_unsmooth) + 
+            (self._ema_alpha * rc.throttle_input_unsmooth) +
             ((1 - self._ema_alpha) * self.throttle_input)
         )
         
-        # Discard very small inputs
+        # Discard small inputs
         if abs(self.throttle_input) < self._input_min:
             self.throttle_input = 0.0
             
-        if self.throttle_input != 0.0:
+        if self.throttle_input:
             self._last_effective_throttle_tick = self._rc_now_tick
             
         return self.throttle_input
-    # === #
     
     # === Tower Zone Handlers === #    
     def position_hold(self, travel_rate: float) -> float:
@@ -604,10 +600,9 @@ class ThrottleController:
                 
             # Only updates once every 2 seconds
             if pigpio.tickDiff(self._last_min_hold_tick, self._rc_now_tick) > 2_000_000:
-                if travel_rate > 0:  # Tower is moving up
-                    if self.min_hold_speed > 0:
-                        self.min_hold_speed -= 0.01  # Decrease speed by 1%
-                        self._last_min_hold_tick = self._rc_now_tick
+                if travel_rate > 0 and self.min_hold_speed > 0:  # Tower is moving up
+                    self.min_hold_speed -= 0.01  # Decrease speed by 1%
+                    self._last_min_hold_tick = self._rc_now_tick
                 elif travel_rate < 0:  # Tower is moving down
                     self.min_hold_speed += 0.01  # Increase speed by 1%
                     self._last_min_hold_tick = self._rc_now_tick
@@ -656,10 +651,10 @@ class ThrottleController:
         if self.throttle_input < 0:  # Moving down
             return self.throttle_input * self._max_allowed_tower_speed
         
-        elif self.throttle_input > 0 and position < self.enc_max:  # Moving up, below max
+        elif self.throttle_input > 0 and position < self._enc_max:  # Moving up, below max
             return self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter
         
-        elif self.throttle_input > 0 and position > self.enc_max:  # Moving up, above max - proceed with caution
+        elif self.throttle_input > 0 and position > self._enc_max:  # Moving up, above max - proceed with caution
             self.active_zone = -4
             # return self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter * 0.1
             return 0
@@ -676,13 +671,12 @@ class ThrottleController:
         """
         Updates encoder max value used in tower position calculations.
         """
-        self.enc_max = enc_max
+        self._enc_max = enc_max
     # === #
     
     # === Logging === #
     def log_debug_values(self) -> None:
-        # self.logger.debug(f"Throttle input (unsmooth): {self._throttle_input_unsmooth}")
-        self.logger.debug(f"Throttle input (smooth): {self.throttle_input}")
+        self.logger.debug(f"Throttle input: {self.throttle_input}")
         self.logger.debug(f"Active zone: {self.active_zone}")
         
         # Log when changed
@@ -701,9 +695,7 @@ class SteeringController:
         # === Runtime Variables === #
         self._steering_direction      = 1  # Tracks which direction the sled moves
         self._max_allowed_sled_speed  = 0
-        self._steering_input_unsmooth = 0
         self.steering_input           = 0
-        self._rc_now_tick: int | None = None
         # === #
         
         # === Logger Config === #
@@ -711,40 +703,40 @@ class SteeringController:
         self.logger.info("SteeringController class initialized")
         # === #
     
-    def update(self, rc: RcInputState) -> None:
+    def update(self, rc: RcInputState) -> float:
         """
         Updates variables with current RC state.
+        
+        Returns smoothed steering input value.
         """
+        # Update internal variables
         self._steering_direction      = rc.steering_direction
         self._max_allowed_sled_speed  = rc.max_allowed_sled_speed
-        self._steering_input_unsmooth = rc.steering_input_unsmooth
-    
-    # === Logic Handlers === #
-    def get_command(self) -> float:
-        """
-        Apply smoothing to steering input value.
-        """
+        
+        # Determine smoothed input
         self.steering_input = (
-            (self._ema_alpha * self._steering_input_unsmooth) + 
+            (self._ema_alpha * rc.steering_input_unsmooth) +
             ((1 - self._ema_alpha) * self.steering_input)
         )
         
-        # Discard very small inputs
+        # Discard small inputs
         if abs(self.steering_input) < self._input_min:
-            self.steering_input = 0
+            self.steering_input = 0.0
             
         return self.steering_input
-    # === #
     
     # === Public Interface === #
-    def get_steering_direction(self) -> int:
-        return self._steering_direction
+    
+    def get_steering_command(self) -> float:
+        """
+        Returns steering command.
+        """
+        return self.steering_input * self._max_allowed_sled_speed * self._steering_direction
     # === #
     
     # === Logging === #
     def log_debug_values(self) -> None:
-        # self.logger.debug(f"Steering input (unsmooth): {self._steering_input_unsmooth}")
-        self.logger.debug(f"Steering input (smooth): {self.steering_input}")
+        self.logger.debug(f"Steering input: {self.steering_input}")
     # === #
     
 class RigController:
@@ -767,8 +759,8 @@ class RigController:
         # === #
         
         # === Runtime Variables === #
-        self._tower_command       = 0.0
-        self._sled_command        = None
+        self._tower_input         = 0.0
+        self._sled_input          = None
         self._zero_button_tripped = False
         # === #
         
@@ -789,17 +781,15 @@ class RigController:
         self._zero_button_tripped = rc.zero_button_tripped
         
         # Update ThrottleController
-        self.throttle.update(rc)
-        self._tower_command = self.throttle.get_command()
+        self._tower_input = self.throttle.update(rc)
         
         # Update SteeringController if present
-        if self.steering is not None:
-            self.steering.update(rc)
-            self._sled_command = self.steering.get_command()
+        if self.steering:
+            self._sled_input = self.steering.update(rc)
         else:
-            self._sled_command = None
+            self._sled_input = None
             
-        return self._tower_command, self._sled_command
+        return self._tower_input, self._sled_input
     
     # === Public Interface === #        
     def connect(self) -> None:
@@ -818,17 +808,17 @@ class RigController:
         """
         self.rc_input.on_zero_button_change.subscribe(callback)
         
-    def get_tower_command(self) -> float:
+    def get_tower_input(self) -> float:
         """
         Returns tower command.
         """
-        return self._tower_command
+        return self._tower_input
     
-    def get_sled_command(self) -> float | None:
+    def get_sled_input(self) -> float | None:
         """
         Returns sled command.
         """
-        return self._sled_command
+        return self._sled_input
     
     def update_enc_max(self, enc_max: int) -> None:
         """
