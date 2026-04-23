@@ -194,7 +194,7 @@ def main() -> None:
             timer_start = time.perf_counter_ns()
             
             # Check for control input and current position
-            tower_input, sled_input = rig.update()
+            tower_input, _ = rig.update()
             enc_pos, enc_vel_inst, enc_vel_avg = encoder.get_encoder_readings()
             
             # Determine tower command
