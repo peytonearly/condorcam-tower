@@ -41,10 +41,10 @@ class AF160:
         # === #
         
         # === Payload Variables === #
-        self.throttle_input_scaled = 0     # Throttle input normalized to AF160 PWM torque limits (-255 to 255)
-        self.throttle_input_recv   = None  # Throttle input set point according to AF160 response
-        self.steering_input_scaled = 0     # Steering input normalized to AF160 PWM torque limits (-255 to 255)
-        self.steering_input_recv   = None  # Steering input set point according to AF160 response
+        self.throttle_input_scaled = 0      # Throttle input normalized to AF160 PWM torque limits (-255 to 255)
+        self._last_throttle_input_sent = 0  # Tracks last value sent to the motor to avoid repeat calls
+        self.steering_input_scaled = 0      # Steering input normalized to AF160 PWM torque limits (-255 to 255)
+        self._last_steering_input_sent = 0  # Tracks last value sent to the motor to avoid repeat calls
         # === #
         
         # === Logger Config === #
@@ -185,7 +185,6 @@ class AF160:
         self.ser.write(msg)
         self.ser.flush()
         time.sleep(0.02)
-        self.logger.debug(f"Sent message: {msg}")
         
         if response_expected:
             # Collect response
@@ -210,20 +209,16 @@ class AF160:
         """
         # Send throttle command
         self.throttle_input_scaled = self._scale_input(throttle_input)
-        self._send_command(channel = self.throttle_channel, register = "t", operation = "s", value = self.throttle_input_scaled, response_expected = False)
-        
-        # Verify throttle set point
-        self._send_command(channel = self.throttle_channel, register = "t")
-        self.throttle_input_recv = self.response
+        if self.throttle_input_scaled != self._last_throttle_input_sent:
+            self._send_command(channel = self.throttle_channel, register = "t", operation = "s", value = self.throttle_input_scaled, response_expected = False)
+            self._last_throttle_input_sent = self.throttle_input_scaled
         
         # Send steering command
         if self.steering_channel:
             self.steering_input_scaled = self._scale_input(steering_input)
-            self._send_command(channel = self.steering_channel, register = "t", operation = "s", value = self.steering_input_scaled, response_expected = False)
-            
-            # Verify steering set point
-            self._send_command(channel = self.steering_channel, register = "t")
-            self.steering_input_recv = self.response
+            if self.steering_input_scaled != self._last_steering_input_sent:
+                self._send_command(channel = self.steering_channel, register = "t", operation = "s", value = self.steering_input_scaled, response_expected = False)
+                self._last_steering_input_sent = self.steering_input_scaled
     # === #
     
     # === Logging === #
@@ -232,8 +227,6 @@ class AF160:
         Log all debug values.
         """
         self.logger.debug(f"Throttle motor speed set point: {self.throttle_input_scaled}")
-        self.logger.debug(f"Throttle motor speed actual: {self.throttle_input_recv}")
         
         if self.steering_channel:
             self.logger.debug(f"Steering motor speed set point: {self.steering_input_scaled}")
-            self.logger.debug(f"Steering motor speed actual: {self.steering_input_recv}")
