@@ -12,9 +12,8 @@ class E5_with_Pico_USB:
         # === Constants === #
         # Encoder
         self._encoder_cpr     = 32    # Encoder counts per revolution
-        self._encoder_max_rev = 66.5  # Number of revolutions made from lowest to highest point
-        # self._encoder_max     = self._encoder_cpr * self._encoder_max_rev  # Encoder max position position (theoretical)
-        self._encoder_max     = 8000  # Encoder max position (experimental)
+        self._encoder_max_rev = 66.5 * 2  # Number of revolutions made from lowest to highest point
+        self._encoder_max     = int(2 * self._encoder_cpr * self._encoder_max_rev)  # Encoder max position position (theoretical)
         # === #
         
         # === Serial Connection === #
@@ -131,6 +130,7 @@ class E5_with_Pico_USB:
         
         self._send_command(2)
     
+        # Zero all items in deque
         for _ in range(len(self.enc_pos_dq)): self.enc_pos_dq.append(0)
     
     def _get_position(self) -> None:
@@ -148,10 +148,8 @@ class E5_with_Pico_USB:
             return
         
         try:
-            pos = int(self.response)
-            ts  = time.perf_counter_ns()
-            self.enc_pos_dq.append(pos)
-            self.pos_ts_dq.append(ts)
+            self.enc_pos_dq.append(int(self.response))
+            self.pos_ts_dq.append(time.perf_counter_ns())
         except ValueError:
             self.logger.warning(f"Invalid response: {self.response!r}")
     # === #
@@ -175,38 +173,27 @@ class E5_with_Pico_USB:
         Zero position when triggered by Tower class.
         """
         if value:  # Ensure value is True
-            self.logger.info("Zero button notification received. Position reset requested")
             self._reset_pico_position()
             
             if self.response:
                 self.logger.info("Encoder position reset")
             else:
                 self.logger.warning("Attempted position reset but Pico did not respond")
-                
-    def get_position(self) -> int:
-        """
-        Returns current tower position.
-        """
-        self._get_position()
-        return self.enc_pos_dq[-1]
     
-    def get_velocity(self) -> float:
+    def get_encoder_readings(self) -> tuple[int, float, float]:
         """
-        Returns the current encoder velocity.
+        Returns current position, instant velocity, and average velocity.
         """
         self._get_position()
         self._calculate_velocity()
-        return self.enc_vel_dq[-1]
+        
+        return [
+            self.enc_pos_dq[-1],                         # Position
+            self.enc_vel_dq[-1],                         # Instantaneous velocity
+            sum(self.enc_vel_dq) / len(self.enc_vel_dq)  # Average velocity
+        ]
     
-    def get_average_velocity(self) -> float:
-        """
-        Returns the average encoder velocity.
-        """
-        self._get_position()
-        self._calculate_velocity()
-        return sum(self.enc_vel_dq) / len(self.enc_vel_dq)
-    
-    def get_encoder_max(self) -> int | float:
+    def get_encoder_max(self) -> int:
         """
         Returns the max encoder value.
         """
@@ -230,7 +217,6 @@ class E5_with_Pico_USB:
         
         Only use when zero button is deemed inoperable.
         """
-        self.logger.warning("Encoder position manually reset")
         self._reset_pico_position()
     # === #
     
@@ -247,4 +233,4 @@ class E5_with_Pico_USB:
 if __name__ == "__main__":
     encoder = E5_with_Pico_USB()
     encoder.set_zero_position()
-    print(f"Encoder position set to: {encoder.get_position()}")
+    print(f"Encoder position set to: {encoder.enc_pos_dq[-1]}")

@@ -160,11 +160,10 @@ def main() -> None:
     no_enc_slow_factor = 0.3                          # Slow-down factor used when encoder is not connected
     
     # Runtime variables
-    tower_input, sled_input = rig.update()                      # Initial control inputs
-    enc_pos                 = encoder.get_position()            # Initial encoder position
-    enc_vel                 = encoder.get_average_velocity()    # Initial encoder velocity (average)
-    enc_connected           = encoder.get_encoder_connection()  # Indicates encoder connection
-    tower_cmd = sled_cmd    = 0                                 # Initial control commands
+    tower_input, sled_input = rig.update()                               # Initial control inputs
+    enc_pos, enc_vel_inst, enc_vel_avg = encoder.get_encoder_readings()  # Initial encoder readings
+    enc_connected           = encoder.get_encoder_connection()           # Indicates encoder connection
+    tower_cmd = sled_cmd    = 0                                          # Initial control commands
     
     # Run tower initialization
     # zero_button_operable, enc_init_offsets = initialize_tower(rig, driver, encoder)
@@ -196,8 +195,7 @@ def main() -> None:
             
             # Check for control input and current position
             tower_input, sled_input = rig.update()
-            enc_pos                 = encoder.get_position()
-            enc_vel                 = encoder.get_velocity()
+            enc_pos, enc_vel_inst, enc_vel_avg = encoder.get_encoder_readings()
             
             # Determine tower command
             if enc_connected:  # When encoder connected, use zone handlers
@@ -206,7 +204,7 @@ def main() -> None:
                     if (lower_region < enc_pos < upper_region): tower_cmd = rig.throttle.middle_region()                 # Tower in middle region
                     if (enc_pos >= upper_region):               tower_cmd = rig.throttle.upper_region(enc_pos, enc_max)  # Tower in upper region
                 else:
-                    # tower_cmd = rig.throttle.position_hold(enc_vel)  # Hold tower position
+                    # tower_cmd = rig.throttle.position_hold(enc_vel_avg)  # Hold tower position
                     tower_cmd = 0.05
                     
             else:  # When encoder not connected, use middle region at slower speeds
