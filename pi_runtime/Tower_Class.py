@@ -522,9 +522,9 @@ class ThrottleController:
         self._rc_now_tick:                  int | None = None
         
         # Minimum speed
-        self._last_min_hold_speed = 0.0  # Track the last minimum hold speed value
-        self.min_move_speed       = 0.0  # Minimum speed value that will move the tower
-        self.min_hold_speed       = 0.0  # Minimum speed value that will hold the tower stationary
+        self._last_min_hold_speed = 0.0   # Track the last minimum hold speed value
+        self.min_move_speed       = 0.0   # Minimum speed value that will move the tower
+        self.min_hold_speed       = 0.03  # Minimum speed value that will hold the tower stationary
         # === #
         
         # === Logger Config === #
