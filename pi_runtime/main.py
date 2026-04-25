@@ -35,7 +35,7 @@ def initialize_tower(rig: RigController, driver: AF160, encoder: E5_with_Pico_US
         zero_button_operable: (bool) Indicator of properly functioning zero button
         enc_offsets: (list) List of encoder offsets measured during initialization
     """
-    tower_move_gentle = 0.05
+    tower_move_gentle = 0.1
     
     # --- Step 1: Safety delay --- #
     time.sleep(3)  # 3 second pause
@@ -154,8 +154,8 @@ def main() -> None:
     encoder = E5_with_Pico_USB()
     
     # Run tower initialization
-    # zero_button_operable, enc_init_offsets = initialize_tower(rig, driver, encoder)
-    zero_button_operable = True
+    zero_button_operable, enc_init_offsets = initialize_tower(rig, driver, encoder)
+    # zero_button_operable = True
     
     # Runtime constants
     enc_max            = encoder.get_encoder_max()         # Encoder max position
