@@ -17,8 +17,8 @@ class Constants:
     input_min:             float = 0.01       # Minimum input value that will be acted on
     speed_limiter_up_max:  float = 0.2        # Limits the speed at upper ends of tower travel (max slowdown)
     speed_limiter_up_min:  float = 0.5        # Limits the speed at upper ends of tower travel (min slowdown)
-    speed_limiter_low_max: float = 0.3        # Limits the speed at lower ends of tower travel (max slowdown)
-    speed_limiter_low_min: float = 0.5        # Limits the speed at lower ends of tower travel (min slowdown)
+    speed_limiter_low_max: float = 0.2        # Limits the speed at lower ends of tower travel (max slowdown)
+    speed_limiter_low_min: float = 0.3        # Limits the speed at lower ends of tower travel (min slowdown)
     ema_alpha_throttle:    float = 0.5        # Throttle smoothing factor. Lower numbers are smoother, higher numbers are more responsive
     ema_alpha_steering:    float = 0.5        # Steering smoothing factor. Lower numbers are smoother, higher numbers are more resposnive
 

@@ -159,7 +159,7 @@ def main() -> None:
     
     # Runtime constants
     enc_max            = encoder.get_encoder_max()         # Encoder max position
-    slow_region        = 0.15                              # Slow-down region
+    slow_region        = 0.20                              # Slow-down region
     lower_region       = int(slow_region * enc_max)        # Encoder position under which is the lower region
     upper_region       = int((1 - slow_region) * enc_max)  # Encoder position above which is the upper region
     no_enc_slow_factor = 0.3                               # Slow-down factor used when encoder is not connected
