@@ -806,11 +806,11 @@ class RigController:
         """
         return self._sled_input
     
-    def update_enc_vals(self, enc_max: int, enc_upper_region: int) -> None:
+    def update_enc_vals(self, enc_max: int, enc_upper_region: int, enc_lower_region: int) -> None:
         """
         Allows the main function to update encoder max value used in ThrottleController class functions.
         """
-        self.throttle.update_enc_vals(enc_max, enc_upper_region)
+        self.throttle.update_enc_vals(enc_max, enc_upper_region, enc_lower_region)
     # === #
     
     # === Logging === #
