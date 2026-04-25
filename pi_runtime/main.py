@@ -131,6 +131,7 @@ def main() -> None:
     # Start the logger
     os.makedirs("logs", exist_ok=True)
     Utils.setup_logging(console_logging = True)
+    logging.info("Beginning new run")
     
     # Signal interrupt
     signal.signal(signal.SIGINT, Utils.signal_handler)
