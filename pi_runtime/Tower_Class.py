@@ -15,7 +15,8 @@ class Constants:
     input_timeout:      int   = 3_000_000  # Input timeout threshold in microseconds
     deadzone:           float = 0.3        # Deadzone (% of controller input)
     input_min:          float = 0.01       # Minimum input value that will be acted on
-    speed_limiter:      float = 0.3        # Limits the speed at ends of tower travel
+    speed_limiter_up:   float = 0.2        # Limits the speed at upper ends of tower travel
+    speed_limiter_down: float = 0.3        # Limits the speed at lower ends of tower travel
     ema_alpha_throttle: float = 0.5        # Throttle smoothing factor. Lower numbers are smoother, higher numbers are more responsive
     ema_alpha_steering: float = 0.5        # Steering smoothing factor. Lower numbers are smoother, higher numbers are more resposnive
 
@@ -498,9 +499,10 @@ class RcInputReader:
 class ThrottleController:
     def __init__(self, constants: Constants):
         # === Constants === #
-        self._ema_alpha     = constants.ema_alpha_throttle
-        self._speed_limiter = constants.speed_limiter
-        self._input_min     = constants.input_min
+        self._ema_alpha          = constants.ema_alpha_throttle
+        self._speed_limiter_up   = constants.speed_limiter_up
+        self._speed_limiter_down = constants.speed_limiter_down
+        self._input_min          = constants.input_min
         
         # Timing
         self._input_timeout = constants.input_timeout
@@ -595,7 +597,7 @@ class ThrottleController:
             return self.throttle_input * self._max_allowed_tower_speed
         
         elif self.throttle_input < 0 and position > 0:  # Moving down, above zero
-            return self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter
+            return self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter_down
         
         elif self.throttle_input < 0 and position < 0:  # Moving down, below zero - proceed with caution
             self.active_zone = -2
@@ -625,7 +627,7 @@ class ThrottleController:
             return self.throttle_input * self._max_allowed_tower_speed
         
         elif self.throttle_input > 0 and position < self._enc_max:  # Moving up, below max
-            return self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter
+            return self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter_up
         
         elif self.throttle_input > 0 and position > self._enc_max:  # Moving up, above max - proceed with caution
             self.active_zone = -4
