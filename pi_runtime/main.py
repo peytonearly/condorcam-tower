@@ -205,8 +205,8 @@ def main() -> None:
                     if (lower_region < enc_pos < upper_region): tower_cmd = rig.throttle.middle_region()                 # Tower in middle region
                     if (enc_pos >= upper_region):               tower_cmd = rig.throttle.upper_region(enc_pos)  # Tower in upper region
                 else:
-                    # tower_cmd = rig.throttle.position_hold(enc_vel_avg)  # Hold tower position
-                    tower_cmd = 0.05
+                    tower_cmd = rig.throttle.position_hold(enc_vel_avg)  # Hold tower position
+                    # tower_cmd = 0.05
                     
             else:  # When encoder not connected, use middle region at slower speeds
                 tower_cmd = rig.throttle.middle_region() * no_enc_slow_factor
