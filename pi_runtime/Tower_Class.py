@@ -17,7 +17,8 @@ class Constants:
     input_min:             float = 0.01       # Minimum input value that will be acted on
     speed_limiter_up_max:  float = 0.2        # Limits the speed at upper ends of tower travel (max slowdown)
     speed_limiter_up_min:  float = 0.5        # Limits the speed at upper ends of tower travel (min slowdown)
-    speed_limiter_down:    float = 0.3        # Limits the speed at lower ends of tower travel
+    speed_limiter_low_max: float = 0.3        # Limits the speed at lower ends of tower travel (max slowdown)
+    speed_limiter_low_min: float = 0.5        # Limits the speed at lower ends of tower travel (min slowdown)
     ema_alpha_throttle:    float = 0.5        # Throttle smoothing factor. Lower numbers are smoother, higher numbers are more responsive
     ema_alpha_steering:    float = 0.5        # Steering smoothing factor. Lower numbers are smoother, higher numbers are more resposnive
 
@@ -503,7 +504,8 @@ class ThrottleController:
         self._ema_alpha             = constants.ema_alpha_throttle
         self._speed_limiter_up_max  = constants.speed_limiter_up_max
         self._speed_limiter_up_min  = constants.speed_limiter_up_min
-        self._speed_limiter_down    = constants.speed_limiter_down
+        self._speed_limiter_low_max = constants.speed_limiter_low_max
+        self._speed_limiter_low_min = constants.speed_limiter_low_min
         self._input_min             = constants.input_min
         
         # Timing
@@ -512,9 +514,11 @@ class ThrottleController:
         # Received variables
         self._enc_max = 8000
         self._enc_upper_region = None
+        self._enc_lower_region = None
         
         # Determined values
-        self._speed_limiter_up = lambda e: self._speed_limiter_up_min + (((self._speed_limiter_up_max - self._speed_limiter_up_min) / (self._enc_max - self._enc_upper_region)) * (e - self._enc_upper_region))
+        self._speed_limiter_up  = lambda e: self._speed_limiter_up_min + (((self._speed_limiter_up_max - self._speed_limiter_up_min) / (self._enc_max - self._enc_upper_region)) * (e - self._enc_upper_region))
+        self._speed_limiter_low = lambda e: self._speed_limiter_low_max + (e * ((self._speed_limiter_low_min - self._speed_limiter_low_max) / self._enc_lower_region))
         # === #
         
         # === Runtime Variables === #
@@ -603,7 +607,7 @@ class ThrottleController:
             return self.throttle_input * self._max_allowed_tower_speed
         
         elif self.throttle_input < 0 and position > 0:  # Moving down, above zero
-            return self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter_down
+            return self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter_low(position)
         
         elif self.throttle_input < 0 and position < 0:  # Moving down, below zero - proceed with caution
             self.active_zone = -2
@@ -647,12 +651,13 @@ class ThrottleController:
     def get_min_hold_speed(self) -> float:
         return self.min_hold_speed
     
-    def update_enc_vals(self, enc_max: int, enc_upper_region: int) -> None:
+    def update_enc_vals(self, enc_max: int, enc_upper_region: int, enc_lower_region) -> None:
         """
         Updates encoder values used in tower position calculations.
         """
         self._enc_max = enc_max
         self._enc_upper_region = enc_upper_region
+        self._enc_lower_region = enc_lower_region
     # === #
     
     # === Logging === #

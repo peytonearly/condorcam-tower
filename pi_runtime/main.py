@@ -165,7 +165,7 @@ def main() -> None:
     no_enc_slow_factor = 0.3                               # Slow-down factor used when encoder is not connected
     
     # Update rig controller internal encoder values
-    rig.update_enc_vals(enc_max, upper_region)
+    rig.update_enc_vals(enc_max, upper_region, lower_region)
     
     # Runtime variables
     tower_input, sled_input = rig.update()                               # Initial control inputs
