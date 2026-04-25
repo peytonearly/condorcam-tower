@@ -102,7 +102,7 @@ def initialize_tower(rig: RigController, driver: AF160, encoder: E5_with_Pico_US
         
     # --- Step 3: Slowly raise the tower to top --- 
     enc_pos = encoder.get_encoder_readings()[0]
-    driver.send_payloads(-1 * tower_move_gentle, None)
+    driver.send_payloads(-1.5 * tower_move_gentle, None)
     while encoder.get_encoder_readings()[2] != 0:
         time.sleep(0.1)
     driver.send_payloads(0, None)
