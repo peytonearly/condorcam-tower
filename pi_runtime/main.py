@@ -45,29 +45,29 @@ def initialize_tower(rig: RigController, driver: AF160, encoder: E5_with_Pico_US
     enc_offsets = []
     
     # Tower is expected to start at zero. Ensure this
-    enc_pos = encoder.get_position()
+    enc_pos = encoder.get_encoder_readings()[0]
     if enc_pos != 0:
         encoder.set_zero_position()
-        enc_pos = encoder.get_position()
+        enc_pos = encoder.get_encoder_readings()[0]
         
     # Gently raise tower
     driver.send_payloads(tower_move_gentle, None)       # Gentle raise
     time.sleep(3)                                       # 1 second raise
     driver.send_payloads(0, None)                       # End raise
-    enc_pos = encoder.get_position()
+    enc_pos = encoder.get_encoder_readings()[0]
     
     # Ensure zero button flag is not tripped
     rig.update()
     
     # Gently lower tower until velocity = 0
     driver.send_payloads(-1 * tower_move_gentle, None)  # Gentle lower
-    while encoder.get_average_velocity() != 0:
+    while encoder.get_encoder_readings()[2] != 0:
         time.sleep(0.1)                                 # Brief pause
     driver.send_payloads(0, None)                       # End lower
     
     # Check for button trip and encoder position
     rig.update()
-    enc_pos = encoder.get_position()
+    enc_pos = encoder.get_encoder_readings()[0]
     trip1 = rig.zero_button_tripped
     if enc_pos != 0:
         enc_offsets.append(enc_pos)
@@ -77,20 +77,20 @@ def initialize_tower(rig: RigController, driver: AF160, encoder: E5_with_Pico_US
     driver.send_payloads(tower_move_gentle, None)       # Gentle raise
     time.sleep(3)                                       # 1 second raise
     driver.send_payloads(0, None)                       # End raise
-    enc_pos = encoder.get_position()
+    enc_pos = encoder.get_encoder_readings()[0]
     
     # Ensure zero button flag is not tripped
     rig.update()
     
     # Gently lower tower until velocity = 0
     driver.send_payloads(-1 * tower_move_gentle, None)  # Gentle lower
-    while encoder.get_average_velocity() != 0:
+    while encoder.get_encoder_readings()[2] != 0:
         time.sleep(0.1)                                 # Brief pause
     driver.send_payloads(0, None)                       # End lower
     
     # Check for button trip and encoder position
     rig.update()
-    enc_pos = encoder.get_position()
+    enc_pos = encoder.get_encoder_readings()[0]
     trip2 = rig.zero_button_tripped
     if enc_pos != 0:
         enc_offsets.append(enc_pos)
@@ -101,25 +101,25 @@ def initialize_tower(rig: RigController, driver: AF160, encoder: E5_with_Pico_US
         zero_button_operable = True
         
     # --- Step 3: Slowly raise the tower to top --- 
-    enc_pos = encoder.get_position()
+    enc_pos = encoder.get_encoder_readings()[0]
     driver.send_payloads(tower_move_gentle, None)
-    while encoder.get_average_velocity() != 0:
+    while encoder.get_encoder_readings()[2] != 0:
         time.sleep(0.1)
     driver.send_payloads(0, None)
     
     # --- Step 4: Record max position ---
-    enc_pos = encoder.get_position()
+    enc_pos = encoder.get_encoder_readings()[0]
     enc_max = enc_pos
     encoder.set_encoder_max(enc_max)
     
     # --- Step 5: Slowly lower the tower to bottom ---
     driver.send_payloads(-1 * tower_move_gentle, None)
-    while encoder.get_average_velocity() != 0:
+    while encoder.get_encoder_readings()[2] != 0:
         time.sleep(0.1)
     driver.send_payloads(0, None)
         
     # --- Step 6: Record lowest position ---
-    enc_pos = encoder.get_position()
+    enc_pos = encoder.get_encoder_readings()[0]
     if enc_pos != 0:
         enc_offsets.append(enc_pos)
         encoder.set_zero_position()
@@ -153,22 +153,25 @@ def main() -> None:
     driver  = AF160(throttle_channel=tower_channel, steering_channel=sled_channel, enable_steering=enable_steering)
     encoder = E5_with_Pico_USB()
     
+    # Run tower initialization
+    # zero_button_operable, enc_init_offsets = initialize_tower(rig, driver, encoder)
+    zero_button_operable = True
+    
     # Runtime constants
-    enc_max            = encoder.get_encoder_max()    # Encoder max position
-    slow_region        = 0.15                         # Slow-down region
-    lower_region       = slow_region * enc_max        # Encoder position under which is the lower region
-    upper_region       = (1 - slow_region) * enc_max  # Encoder position above which is the upper region
-    no_enc_slow_factor = 0.3                          # Slow-down factor used when encoder is not connected
+    enc_max            = encoder.get_encoder_max()         # Encoder max position
+    slow_region        = 0.15                              # Slow-down region
+    lower_region       = int(slow_region * enc_max)        # Encoder position under which is the lower region
+    upper_region       = int((1 - slow_region) * enc_max)  # Encoder position above which is the upper region
+    no_enc_slow_factor = 0.3                               # Slow-down factor used when encoder is not connected
+    
+    # Update rig controller internal encoder values
+    rig.update_enc_vals(enc_max, upper_region)
     
     # Runtime variables
     tower_input, sled_input = rig.update()                               # Initial control inputs
     enc_pos, enc_vel_inst, enc_vel_avg = encoder.get_encoder_readings()  # Initial encoder readings
     enc_connected           = encoder.get_encoder_connection()           # Indicates encoder connection
     tower_cmd = sled_cmd    = 0                                          # Initial control commands
-    
-    # Run tower initialization
-    # zero_button_operable, enc_init_offsets = initialize_tower(rig, driver, encoder)
-    zero_button_operable = True
     
     # Configure zero button flagger if button is operable
     if zero_button_operable:
@@ -182,9 +185,6 @@ def main() -> None:
     timer_cnt   = 0            # Returns number of loops
     timer_high  = 0            # Initialize to 0
     timer_low   = sys.maxsize  # Initialize to largest int possible
-    
-    # Deliver constants
-    rig.update_enc_max(enc_max)
     
     # Main loop
     try:
