@@ -203,7 +203,7 @@ def main() -> None:
                 if tower_input:
                     if (enc_pos <= lower_region):               tower_cmd = rig.throttle.lower_region(enc_pos)           # Tower in lower region
                     if (lower_region < enc_pos < upper_region): tower_cmd = rig.throttle.middle_region()                 # Tower in middle region
-                    if (enc_pos >= upper_region):               tower_cmd = rig.throttle.upper_region(enc_pos, enc_max)  # Tower in upper region
+                    if (enc_pos >= upper_region):               tower_cmd = rig.throttle.upper_region(enc_pos)  # Tower in upper region
                 else:
                     # tower_cmd = rig.throttle.position_hold(enc_vel_avg)  # Hold tower position
                     tower_cmd = 0.05
