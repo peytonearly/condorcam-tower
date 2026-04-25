@@ -51,7 +51,7 @@ def initialize_tower(rig: RigController, driver: AF160, encoder: E5_with_Pico_US
         enc_pos = encoder.get_encoder_readings()[0]
         
     # Gently raise tower
-    driver.send_payloads(tower_move_gentle, None)       # Gentle raise
+    driver.send_payloads(-1 * tower_move_gentle, None)       # Gentle raise
     time.sleep(3)                                       # 1 second raise
     driver.send_payloads(0, None)                       # End raise
     enc_pos = encoder.get_encoder_readings()[0]
@@ -60,7 +60,7 @@ def initialize_tower(rig: RigController, driver: AF160, encoder: E5_with_Pico_US
     rig.update()
     
     # Gently lower tower until velocity = 0
-    driver.send_payloads(-1 * tower_move_gentle, None)  # Gentle lower
+    driver.send_payloads(tower_move_gentle, None)  # Gentle lower
     while encoder.get_encoder_readings()[2] != 0:
         time.sleep(0.1)                                 # Brief pause
     driver.send_payloads(0, None)                       # End lower
@@ -74,7 +74,7 @@ def initialize_tower(rig: RigController, driver: AF160, encoder: E5_with_Pico_US
         encoder.set_zero_position()
         
     # Gently raise tower
-    driver.send_payloads(tower_move_gentle, None)       # Gentle raise
+    driver.send_payloads(-1 * tower_move_gentle, None)       # Gentle raise
     time.sleep(3)                                       # 1 second raise
     driver.send_payloads(0, None)                       # End raise
     enc_pos = encoder.get_encoder_readings()[0]
@@ -83,7 +83,7 @@ def initialize_tower(rig: RigController, driver: AF160, encoder: E5_with_Pico_US
     rig.update()
     
     # Gently lower tower until velocity = 0
-    driver.send_payloads(-1 * tower_move_gentle, None)  # Gentle lower
+    driver.send_payloads(tower_move_gentle, None)  # Gentle lower
     while encoder.get_encoder_readings()[2] != 0:
         time.sleep(0.1)                                 # Brief pause
     driver.send_payloads(0, None)                       # End lower
@@ -113,7 +113,7 @@ def initialize_tower(rig: RigController, driver: AF160, encoder: E5_with_Pico_US
     encoder.set_encoder_max(enc_max)
     
     # --- Step 5: Slowly lower the tower to bottom ---
-    driver.send_payloads(-1 * tower_move_gentle, None)
+    driver.send_payloads(tower_move_gentle, None)
     while encoder.get_encoder_readings()[2] != 0:
         time.sleep(0.1)
     driver.send_payloads(0, None)
