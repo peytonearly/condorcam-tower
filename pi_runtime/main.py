@@ -183,7 +183,7 @@ def main() -> None:
     timer_low   = sys.maxsize  # Initialize to largest int possible
     
     # Deliver constants
-    rig.update_enc_max(enc_max)
+    # rig.update_enc_max(enc_max)
     
     # Main loop
     try:
