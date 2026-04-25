@@ -805,7 +805,7 @@ class RigController:
         """
         Allows the main function to update encoder max value used in ThrottleController class functions.
         """
-        self.throttle.update_enc_vals(enc_max, enc_upper_reg)
+        self.throttle.update_enc_vals(enc_max, enc_upper_region)
     # === #
     
     # === Logging === #
