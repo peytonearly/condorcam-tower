@@ -26,7 +26,7 @@ class Constants:
 class RcInputState:
     throttle_input_unsmooth: float  # Normalized [-1.0, 1.0]
     steering_input_unsmooth: float  # Normalized [-1.0, 1.0]
-    pedals_connected: bool
+    tower_active: bool
     steering_direction: int
     max_allowed_sled_speed: int
     max_allowed_tower_speed: int
@@ -85,7 +85,8 @@ class RcInputReader:
         # === #
         
         # === Runtime Variables === #
-        self._pedals_connected        = False  # Indicates if the pedals are connected based on channel 3 state. False/0 for off | True/1 for on
+        self._tower_active            = False  # Indicates if the tower is active based on channel 3 state. False/0 for off | True/1 for on
+        self._pedals_connected        = False  # Indicates if the pedals are the active control source. False/0 for off | True/1 for on
         self._steering_direction      = 1      # Tracks which direction the sled moves per given steering input direction (1 or -1 multiplier)
         self._max_allowed_tower_speed = 0
         self._max_allowed_sled_speed  = 0
@@ -427,7 +428,7 @@ class RcInputReader:
         """
         pulse = median(self.channel3_dq)
                 
-        self._pedals_connected = True if pulse > 1700 else False
+        self._tower_active = True if pulse > 1700 else False
     
     def _decode_channel4_input(self) -> None:
         """
@@ -476,12 +477,22 @@ class RcInputReader:
     # === #
     
     # === Public Interface === #
+    def set_pedals_connected(self, high_time) -> None:
+        high_time_diffs = [abs(high_time - x) for x in self._throttle_neutral_us]
+        
+        if high_time_diffs[0] < high_time_diffs[1]:
+            # More similar to controller neutral
+            self._pedals_connected = False
+        elif high_time_diffs[0] > high_time_diffs[1]:
+            # More similar to pedals neutral
+            self._pedals_connected = True
+    
     def poll(self) -> RcInputState:
         self._update_inputs()
         return RcInputState(
             throttle_input_unsmooth  = self._throttle_input_unsmooth,
             steering_input_unsmooth  = self._steering_input_unsmooth,
-            pedals_connected         = self._pedals_connected,
+            tower_active             = self._tower_active,
             steering_direction       = self._steering_direction,
             max_allowed_sled_speed   = self._max_allowed_sled_speed,
             max_allowed_tower_speed  = self._max_allowed_tower_speed,
@@ -793,6 +804,20 @@ class RigController:
         Subscription method for zero button flagging.
         """
         self.rc_input.on_zero_button_change.subscribe(callback)
+        
+    def get_tower_throttle_high_time(self) -> int:
+        """
+        Returns the most recent throttle high time.
+        Used for tower initialization.
+        """
+        return int(self.rc_input.throttle_dq[-1])
+    
+    def set_pedals_connected(self, high_time) -> None:
+        """
+        Notifies RcInputReader of pedals being connected.
+        Based on initialization readings.
+        """
+        self.rc_input.set_pedals_connected(high_time)
         
     def get_tower_input(self) -> float:
         """

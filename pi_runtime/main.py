@@ -36,37 +36,45 @@ def initialize_tower(rig: RigController, driver: AF160, encoder: E5_with_Pico_US
         enc_offsets: (list) List of encoder offsets measured during initialization
     """
     tower_move_gentle = 0.1
+    throttle_high_times = []
     
     # --- Step 1: Safety delay --- #
     time.sleep(3)  # 3 second pause
+    throttle_high_times.append(rig.get_tower_throttle_high_time())
     
     # --- Step 2: Zero button verification --- #
     zero_button_operable = False
     enc_offsets = []
+    throttle_high_times.append(rig.get_tower_throttle_high_time())
     
     # Tower is expected to start at zero. Ensure this
     enc_pos = encoder.get_encoder_readings()[0]
     if enc_pos != 0:
         encoder.set_zero_position()
         enc_pos = encoder.get_encoder_readings()[0]
+    throttle_high_times.append(rig.get_tower_throttle_high_time())
         
     # Gently raise tower
     driver.send_payloads(-1 * tower_move_gentle, None)       # Gentle raise
     time.sleep(3)                                       # 1 second raise
     driver.send_payloads(0, None)                       # End raise
     enc_pos = encoder.get_encoder_readings()[0]
+    throttle_high_times.append(rig.get_tower_throttle_high_time())
     
     # Ensure zero button flag is not tripped
     rig.update()
+    throttle_high_times.append(rig.get_tower_throttle_high_time())
     
     # Gently lower tower until velocity = 0
     driver.send_payloads(tower_move_gentle, None)  # Gentle lower
     while encoder.get_encoder_readings()[2] != 0:
         time.sleep(0.1)                                 # Brief pause
     driver.send_payloads(0, None)                       # End lower
+    throttle_high_times.append(rig.get_tower_throttle_high_time())
     
     # Check for button trip and encoder position
     rig.update()
+    throttle_high_times.append(rig.get_tower_throttle_high_time())
     enc_pos = encoder.get_encoder_readings()[0]
     trip1 = rig.zero_button_tripped
     if enc_pos != 0:
@@ -78,18 +86,22 @@ def initialize_tower(rig: RigController, driver: AF160, encoder: E5_with_Pico_US
     time.sleep(3)                                       # 1 second raise
     driver.send_payloads(0, None)                       # End raise
     enc_pos = encoder.get_encoder_readings()[0]
+    throttle_high_times.append(rig.get_tower_throttle_high_time())
     
     # Ensure zero button flag is not tripped
     rig.update()
+    throttle_high_times.append(rig.get_tower_throttle_high_time())
     
     # Gently lower tower until velocity = 0
     driver.send_payloads(tower_move_gentle, None)  # Gentle lower
     while encoder.get_encoder_readings()[2] != 0:
         time.sleep(0.1)                                 # Brief pause
     driver.send_payloads(0, None)                       # End lower
+    throttle_high_times.append(rig.get_tower_throttle_high_time())
     
     # Check for button trip and encoder position
     rig.update()
+    throttle_high_times.append(rig.get_tower_throttle_high_time())
     enc_pos = encoder.get_encoder_readings()[0]
     trip2 = rig.zero_button_tripped
     if enc_pos != 0:
@@ -99,6 +111,7 @@ def initialize_tower(rig: RigController, driver: AF160, encoder: E5_with_Pico_US
     # Zero button operable if tripped both times
     if trip1 and trip2:
         zero_button_operable = True
+    throttle_high_times.append(rig.get_tower_throttle_high_time())
         
     # --- Step 3: Slowly raise the tower to top --- 
     enc_pos = encoder.get_encoder_readings()[0]
@@ -106,25 +119,31 @@ def initialize_tower(rig: RigController, driver: AF160, encoder: E5_with_Pico_US
     while encoder.get_encoder_readings()[2] != 0:
         time.sleep(0.1)
     driver.send_payloads(0, None)
+    throttle_high_times.append(rig.get_tower_throttle_high_time())
     
     # --- Step 4: Record max position ---
     enc_pos = encoder.get_encoder_readings()[0]
     enc_max = enc_pos
     encoder.set_encoder_max(enc_max)
+    throttle_high_times.append(rig.get_tower_throttle_high_time())
     
     # --- Step 5: Slowly lower the tower to bottom ---
     driver.send_payloads(tower_move_gentle, None)
     while encoder.get_encoder_readings()[2] != 0:
         time.sleep(0.1)
     driver.send_payloads(0, None)
+    throttle_high_times.append(rig.get_tower_throttle_high_time())
         
     # --- Step 6: Record lowest position ---
     enc_pos = encoder.get_encoder_readings()[0]
     if enc_pos != 0:
         enc_offsets.append(enc_pos)
         encoder.set_zero_position()
+    throttle_high_times.append(rig.get_tower_throttle_high_time())
+    
+    throttle_high_time = int(sum(throttle_high_times) / len(throttle_high_times))
         
-    return zero_button_operable, enc_offsets
+    return zero_button_operable, enc_offsets, throttle_high_time
 # === #
 
 def main() -> None:
@@ -154,7 +173,7 @@ def main() -> None:
     encoder = E5_with_Pico_USB()
     
     # Run tower initialization
-    zero_button_operable, enc_init_offsets = initialize_tower(rig, driver, encoder)
+    zero_button_operable, enc_init_offsets, throttle_high_time = initialize_tower(rig, driver, encoder)
     # zero_button_operable = True
     
     # Runtime constants
@@ -164,8 +183,9 @@ def main() -> None:
     upper_region       = int((1 - slow_region) * enc_max)  # Encoder position above which is the upper region
     no_enc_slow_factor = 0.3                               # Slow-down factor used when encoder is not connected
     
-    # Update rig controller internal encoder values
+    # Update rig controller internal values
     rig.update_enc_vals(enc_max, upper_region, lower_region)
+    rig.set_pedals_connected(throttle_high_time)
     
     # Runtime variables
     tower_input, sled_input = rig.update()                               # Initial control inputs

@@ -3,3 +3,4 @@ Notes.txt
 /tools/updater/logs
 *.log
 *.log
+tools/updater/logs/system.log
