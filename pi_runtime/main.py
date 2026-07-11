@@ -172,6 +172,12 @@ def main() -> None:
     driver  = AF160(throttle_channel=tower_channel, steering_channel=sled_channel, enable_steering=enable_steering)
     encoder = E5_with_Pico_USB()
     
+    # Wait for tower active signal
+    _, _ = rig.update()
+    while not rig.tower_active:
+        time.sleep(0.5)  # Sleep 1/2 seconds before re-polling
+        rig.update()
+    
     # Run tower initialization
     zero_button_operable, enc_init_offsets, throttle_high_time = initialize_tower(rig, driver, encoder)
     # zero_button_operable = True
@@ -218,27 +224,28 @@ def main() -> None:
             tower_input, _ = rig.update()
             enc_pos, enc_vel_inst, enc_vel_avg = encoder.get_encoder_readings()
             
-            # Determine tower command
-            if enc_connected:  # When encoder connected, use zone handlers
-                if tower_input:
-                    if (enc_pos <= lower_region):               tower_cmd = rig.throttle.lower_region(enc_pos)           # Tower in lower region
-                    if (lower_region < enc_pos < upper_region): tower_cmd = rig.throttle.middle_region()                 # Tower in middle region
-                    if (enc_pos >= upper_region):               tower_cmd = rig.throttle.upper_region(enc_pos)  # Tower in upper region
-                else:
-                    tower_cmd = rig.throttle.position_hold(enc_vel_avg)  # Hold tower position
-                    # tower_cmd = 0.05
+            if rig.tower_active:
+                # Determine tower command
+                if enc_connected:  # When encoder connected, use zone handlers
+                    if tower_input:
+                        if (enc_pos <= lower_region):               tower_cmd = rig.throttle.lower_region(enc_pos)           # Tower in lower region
+                        if (lower_region < enc_pos < upper_region): tower_cmd = rig.throttle.middle_region()                 # Tower in middle region
+                        if (enc_pos >= upper_region):               tower_cmd = rig.throttle.upper_region(enc_pos)  # Tower in upper region
+                    else:
+                        tower_cmd = rig.throttle.position_hold(enc_vel_avg)  # Hold tower position
+                        # tower_cmd = 0.05
+                        
+                else:  # When encoder not connected, use middle region at slower speeds
+                    tower_cmd = rig.throttle.middle_region() * no_enc_slow_factor
                     
-            else:  # When encoder not connected, use middle region at slower speeds
-                tower_cmd = rig.throttle.middle_region() * no_enc_slow_factor
-                
-            # Determine sled command
-            if enable_steering:
-                sled_cmd = rig.steering.get_steering_command()
-            else:
-                sled_cmd = None
-                
-            # Send motor commands
-            driver.send_payloads(throttle_input = -1 * tower_cmd, steering_input = sled_cmd)
+                # Determine sled command
+                if enable_steering:
+                    sled_cmd = rig.steering.get_steering_command()
+                else:
+                    sled_cmd = None
+                    
+                # Send motor commands
+                driver.send_payloads(throttle_input = -1 * tower_cmd, steering_input = sled_cmd)
             
             # Log debug values
             rig.log_debug_values()

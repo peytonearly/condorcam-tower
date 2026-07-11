@@ -759,6 +759,7 @@ class RigController:
         self._tower_input         = 0.0
         self._sled_input          = None
         self._zero_button_tripped = False
+        self._tower_active        = False
         # === #
         
         # === Logger Config === #
@@ -776,6 +777,7 @@ class RigController:
         # Poll RcInputReader
         rc = self.rc_input.poll()
         self._zero_button_tripped = rc.zero_button_tripped
+        self._tower_active = rc.tower_active
         
         # Update ThrottleController
         self._tower_input = self.throttle.update(rc)
@@ -798,6 +800,10 @@ class RigController:
     @property
     def zero_button_tripped(self) -> bool:
         return self._zero_button_tripped
+    
+    @property
+    def tower_active(self) -> bool:
+        return self._tower_active
     
     def subscribe_zero_button(self, callback) -> None:
         """
@@ -835,7 +841,7 @@ class RigController:
         """
         Allows the main function to update encoder max value used in ThrottleController class functions.
         """
-        self.throttle.update_enc_vals(enc_max, enc_upper_region, enc_lower_region)
+        self.throttle.update_enc_vals(enc_max, enc_upper_region, enc_lower_region)        
     # === #
     
     # === Logging === #
