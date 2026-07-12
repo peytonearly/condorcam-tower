@@ -30,9 +30,7 @@ def main() -> None:
     tower_hold = -0.05
     
     # Runtime variables
-    enc_pos = encoder.get_position()
-    enc_vel = encoder.get_velocity()
-    enc_vel_avg = encoder.get_average_velocity()
+    enc_pos, enc_vel, enc_vel_avg = encoder.get_encoder_readings()
     last_command = tower_down
     cur_command = 0
     
