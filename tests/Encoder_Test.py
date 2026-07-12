@@ -71,9 +71,7 @@ def main() -> None:
                 timer_loop_start = time.time()
                 
             # Get encoder readings
-            enc_pos = encoder.get_position()
-            enc_vel = encoder.get_velocity()
-            enc_vel_avg = encoder.get_average_velocity()
+            enc_pos, enc_vel, enc_vel_avg = encoder.get_encoder_readings()
             
             lines = [
                 f"Position:       {enc_pos}",

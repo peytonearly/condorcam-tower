@@ -42,9 +42,7 @@ def main() -> None:
         
         while not State.signal_received.is_set():
             throttle_smooth, steering_smooth = rig.update()
-            throttle_unsmooth = rig.throttle._throttle_input_unsmooth
             throttle_command = driver._scale_input(throttle_smooth)
-            steering_unsmooth = rig.steering._steering_input_unsmooth
             steering_command = driver._scale_input(steering_smooth)
             throttle_high_time = int(median(rig.rc_input.throttle_dq))
             steering_high_time = int(median(rig.rc_input.steering_dq))
@@ -54,8 +52,8 @@ def main() -> None:
             channel6_high_time = int(median(rig.rc_input.channel6_dq))
             
             lines = [
-                f"Steering | High Time: {steering_high_time} | Unsmooth: {steering_unsmooth:.3f} | Smooth: {steering_smooth:.3f} | Command: {steering_command:.3f}",
-                f"Throttle | High Time: {throttle_high_time} | Unsmooth: {throttle_unsmooth:.3f} | Smooth: {throttle_smooth:.3f} | Command: {throttle_command:.3f}",
+                f"Steering | High Time: {steering_high_time} | Input: {steering_smooth:.3f} | Command: {steering_command:.3f}",
+                f"Throttle | High Time: {throttle_high_time} | Input: {throttle_smooth:.3f} | Command: {throttle_command:.3f}",
                 f"Channel3 | High Time: {channel3_high_time}",
                 f"Channel4 | High Time: {channel4_high_time}",
                 f"Channel5 | High Time: {channel5_high_time}",
