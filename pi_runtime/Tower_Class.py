@@ -615,7 +615,8 @@ class ThrottleController:
         self.active_zone = 2
         
         if self.throttle_input > 0:  # Moving up
-            return self.throttle_input * self._max_allowed_tower_speed
+            # Ensure minimum input
+            return max(self.throttle_input * self._max_allowed_tower_speed, self.min_hold_speed)
         
         elif self.throttle_input < 0 and position > 0:  # Moving down, above zero
             return self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter_low(position)
@@ -634,7 +635,10 @@ class ThrottleController:
         """
         self.active_zone = 3
         
-        return self.throttle_input * self._max_allowed_tower_speed
+        if self.throttle_input > 0:  # Moving up - ensure minimum input
+            return max(self.throttle_input * self._max_allowed_tower_speed, self.min_hold_speed)
+        else:
+            return self.throttle_input * self._max_allowed_tower_speed
     
     def upper_region(self, position: int) -> float:
         """
@@ -648,7 +652,7 @@ class ThrottleController:
             return self.throttle_input * self._max_allowed_tower_speed
         
         elif self.throttle_input > 0 and position < self._enc_max:  # Moving up, below max
-            return self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter_up(position)
+            return max(self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter_up(position), self.min_hold_speed)
         
         elif self.throttle_input > 0 and position > self._enc_max:  # Moving up, above max - proceed with caution
             self.active_zone = -4
