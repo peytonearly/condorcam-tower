@@ -615,11 +615,11 @@ class ThrottleController:
         self.active_zone = 2
         
         if self.throttle_input > 0:  # Moving up
-            # Ensure minimum input
-            return max(self.throttle_input * self._max_allowed_tower_speed, self.min_hold_speed)
+            # Clamp between min hold speed and +1.0
+            return min(self.min_hold_speed + (self.throttle_input * self._max_allowed_tower_speed), 1.0)
         
         elif self.throttle_input < 0 and position > 0:  # Moving down, above zero
-            return self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter_low(position)
+            return self.min_hold_speed + (self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter_low(position))
         
         elif self.throttle_input < 0 and position < 0:  # Moving down, below zero - proceed with caution
             self.active_zone = -2
@@ -635,10 +635,7 @@ class ThrottleController:
         """
         self.active_zone = 3
         
-        if self.throttle_input > 0:  # Moving up - ensure minimum input
-            return max(self.throttle_input * self._max_allowed_tower_speed, self.min_hold_speed)
-        else:
-            return self.throttle_input * self._max_allowed_tower_speed
+        return min(self.min_hold_speed + (self.throttle_input * self._max_allowed_tower_speed), 1.0)
     
     def upper_region(self, position: int) -> float:
         """
@@ -649,10 +646,10 @@ class ThrottleController:
         self.active_zone = 4
         
         if self.throttle_input < 0:  # Moving down
-            return self.throttle_input * self._max_allowed_tower_speed
+            return self.min_hold_speed + (self.throttle_input * self._max_allowed_tower_speed)
         
         elif self.throttle_input > 0 and position < self._enc_max:  # Moving up, below max
-            return max(self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter_up(position), self.min_hold_speed)
+            return min(self.min_hold_speed + (self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter_up(position)), 1.0)
         
         elif self.throttle_input > 0 and position > self._enc_max:  # Moving up, above max - proceed with caution
             self.active_zone = -4
