@@ -149,7 +149,7 @@ def initialize_tower(rig: RigController, driver: AF160, encoder: E5_with_Pico_US
 def main() -> None:
     # Start the logger
     os.makedirs("logs", exist_ok=True)
-    Utils.setup_logging(console_logging = True)
+    Utils.setup_logging(console_logging = False)
     logging.info("Beginning new run")
     
     # Signal interrupt
