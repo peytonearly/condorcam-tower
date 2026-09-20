@@ -1,0 +1,30 @@
+[Unit]
+Description=CondorCam Tower Control System
+Requires=pigpiod.service
+After=pigpiod.service
+
+[Service]
+Type=simple
+
+User=pi
+Group=pi
+
+WorkingDirectory=/home/pi/condorcam-tower
+
+# Use the project's virtual environment and run the package entry point
+ExecStart=/home/pi/condorcam-tower/.venv/bin/python -m pi_runtime.main
+
+# Restart automatically if the Python process exits unexpectedly
+Restart=on-failure
+RestartSec=5
+
+# Send Python output to the systemd journal immediately
+Environment=PYTHONUNBUFFERED=1
+
+# Keep stdout/stderr available through journalctl
+StandardOutput=journal
+StandardError=journal
+SyslogIdenfier=condorcam
+
+[Install]
+WantedBy=multi-user.target
