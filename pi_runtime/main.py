@@ -127,27 +127,14 @@ def initialize_tower(rig: RigController, driver: AF160, encoder: E5_with_Pico_US
     encoder.set_encoder_max(enc_max)
     throttle_high_times.append(rig.get_tower_throttle_high_time())
     
-    # --- Step 5: Determine minimum hold speed ---
-    # Move down slightly
-    driver.send_payloads(0.5 * tower_move_gentle, None)
-    time.sleep(2)
-    driver.send_payloads(0, None)
-    
-    hold_test_stop = time.time() + 15
-    while time.time() < hold_test_stop:
-        rig.update()
-        hold_command = rig.throttle.position_hold(encoder.get_encoder_readings()[2])
-        driver.send_payloads(-1 * hold_command, None)
-        time.sleep(0.1)
-    
-    # --- Step 6: Slowly lower the tower to bottom ---
+    # --- Step 5: Slowly lower the tower to bottom ---
     driver.send_payloads(tower_move_gentle, None)
     while encoder.get_encoder_readings()[2] != 0:
         time.sleep(0.1)
     driver.send_payloads(0, None)
     throttle_high_times.append(rig.get_tower_throttle_high_time())
         
-    # --- Step 7: Record lowest position ---
+    # --- Step 6: Record lowest position ---
     enc_pos = encoder.get_encoder_readings()[0]
     if enc_pos != 0:
         enc_offsets.append(enc_pos)
