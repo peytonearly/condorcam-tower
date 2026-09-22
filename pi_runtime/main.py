@@ -163,7 +163,7 @@ def main() -> None:
         exit()
         
     # Class constants
-    enable_steering = False        # Indicates if the sled is connected
+    enable_steering = True         # Indicates if the sled is connected
     tower_channel   = Utils.RIGHT  # Indicates which channel the tower is connected to (0 for left, 1 for right)
     sled_channel    = Utils.LEFT   # Indicates which channel the sled is connected to (0 for left, 1 for right)
     
@@ -221,7 +221,7 @@ def main() -> None:
             timer_start = time.perf_counter_ns()
             
             # Check for control input and current position
-            tower_input, _ = rig.update()
+            tower_input, sled_input = rig.update()
             enc_pos, enc_vel_inst, enc_vel_avg = encoder.get_encoder_readings()
             
             if rig.tower_active:

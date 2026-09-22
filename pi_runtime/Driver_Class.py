@@ -38,6 +38,7 @@ class AF160:
         # === Motor Configuration === #
         self.throttle_channel = throttle_channel
         self.steering_channel = steering_channel
+        self.enable_steering  = enable_steering
         # === #
         
         # === Payload Variables === #
@@ -214,7 +215,7 @@ class AF160:
             self._last_throttle_input_sent = self.throttle_input_scaled
         
         # Send steering command
-        if self.steering_channel:
+        if self.enable_steering:
             self.steering_input_scaled = self._scale_input(steering_input)
             if self.steering_input_scaled != self._last_steering_input_sent:
                 self._send_command(channel = self.steering_channel, register = "t", operation = "s", value = self.steering_input_scaled, response_expected = False)
@@ -228,5 +229,5 @@ class AF160:
         """
         self.logger.debug(f"Throttle motor speed set point: {self.throttle_input_scaled}")
         
-        if self.steering_channel:
+        if self.enable_steering:
             self.logger.debug(f"Steering motor speed set point: {self.steering_input_scaled}")

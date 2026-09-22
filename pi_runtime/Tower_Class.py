@@ -726,7 +726,6 @@ class SteeringController:
         return self.steering_input
     
     # === Public Interface === #
-    
     def get_steering_command(self) -> float:
         """
         Returns steering command.
