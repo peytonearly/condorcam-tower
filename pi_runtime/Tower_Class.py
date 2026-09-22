@@ -16,7 +16,7 @@ class Constants:
     hold_timeout:          int   = 1_500_000  # Timeout threshold for position hold recalc in microseconds
     deadzone:              float = 0.3        # Deadzone (% of controller input)
     input_min:             float = 0.01       # Minimum input value that will be acted on
-    speed_limiter_up_max:  float = 0.2        # Limits the speed at upper ends of tower travel (max slowdown)
+    speed_limiter_up_max:  float = 0.05        # Limits the speed at upper ends of tower travel (max slowdown)
     speed_limiter_up_min:  float = 0.5        # Limits the speed at upper ends of tower travel (min slowdown)
     speed_limiter_low_max: float = 0.2        # Limits the speed at lower ends of tower travel (max slowdown)
     speed_limiter_low_min: float = 0.3        # Limits the speed at lower ends of tower travel (min slowdown)
@@ -653,7 +653,7 @@ class ThrottleController:
         elif self.throttle_input > 0 and position < self._enc_max:  # Moving up, below max
             return min(self.min_hold_speed + (self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter_up(position)), 1.0)
         
-        elif self.throttle_input > 0 and position > self._enc_max:  # Moving up, above max - proceed with caution
+        elif self.throttle_input > 0 and position >= self._enc_max:  # Moving up, above max - proceed with caution
             self.active_zone = -4
             return self.min_hold_speed
         
