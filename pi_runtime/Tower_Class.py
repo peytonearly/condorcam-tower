@@ -13,6 +13,7 @@ from pi_runtime.Event_Class import Zero_Button_Event
 class Constants:
     controller_timeout:    int   = 1_000_000  # Timeout threshold in microseconds
     input_timeout:         int   = 3_000_000  # Input timeout threshold in microseconds
+    hold_timeout:          int   = 1_500_000  # Timeout threshold for position hold recalc in microseconds
     deadzone:              float = 0.3        # Deadzone (% of controller input)
     input_min:             float = 0.01       # Minimum input value that will be acted on
     speed_limiter_up_max:  float = 0.2        # Limits the speed at upper ends of tower travel (max slowdown)
@@ -521,6 +522,7 @@ class ThrottleController:
         
         # Timing
         self._input_timeout = constants.input_timeout
+        self._hold_timeout  = constants.hold_timeout
         
         # Received variables
         self._enc_max = 8000
@@ -595,7 +597,7 @@ class ThrottleController:
                 self._last_min_hold_tick = self._rc_now_tick
                 
             # Only updates once every 2 seconds
-            if pigpio.tickDiff(self._last_min_hold_tick, self._rc_now_tick) > 2_000_000:
+            if pigpio.tickDiff(self._last_min_hold_tick, self._rc_now_tick) > self._hold_timeout:
                 if travel_rate > 0 and self.min_hold_speed > 0:  # Tower is moving up
                     self.min_hold_speed -= 0.01  # Decrease speed by 1%
                     self._last_min_hold_tick = self._rc_now_tick
