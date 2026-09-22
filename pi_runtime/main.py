@@ -202,24 +202,12 @@ def main() -> None:
     # Configure zero button flagger if button is operable
     if zero_button_operable:
         rig.subscribe_zero_button(encoder.handle_zero_button_tripped)
-        
-    # Initialize time-keeping variables (in nanoseconds)
-    timer_start = None         # Runtime calc
-    timer_end   = None         # Runtime calc
-    timer_loop  = None         # Runtime calc - loop length (end - start)
-    timer_sum   = 0            # Returns running sum of times (to be used in average)
-    timer_cnt   = 0            # Returns number of loops
-    timer_high  = 0            # Initialize to 0
-    timer_low   = sys.maxsize  # Initialize to largest int possible
     
     # Main loop
     try:
         logging.info("Beginning loop")
         
-        while not State.signal_received.is_set():
-            # Start timer
-            timer_start = time.perf_counter_ns()
-            
+        while not State.signal_received.is_set():            
             # Check for control input and current position
             tower_input, sled_input = rig.update()
             enc_pos, enc_vel_inst, enc_vel_avg = encoder.get_encoder_readings()
@@ -252,13 +240,6 @@ def main() -> None:
             driver.log_debug_values()
             encoder.log_debug_values()
             
-            # Timer calcs
-            timer_end = time.perf_counter_ns()
-            timer_loop = timer_end - timer_start
-            timer_sum += timer_loop
-            timer_cnt += 1
-            if timer_loop < timer_low: timer_low = timer_loop    # Update fastest time
-            if timer_loop > timer_high: timer_high = timer_loop  # Update slowest time
     finally:
         if State.signal_received.is_set():
             logging.warning("Interrupt signal received. Closing program...")
@@ -267,12 +248,6 @@ def main() -> None:
         encoder.disconnect()
         pi.stop()
         logging.info("Clean shutdown complete.")
-        try:
-            logging.info(f"Average loop time: {(timer_sum / timer_cnt) / 1_000_000_000} s")
-            logging.info(f"Fastest loop time: {timer_low / 1_000_000_000} s")
-            logging.info(f"Slowest loop time: {timer_high / 1_000_000_000} s")
-        except ZeroDivisionError:
-            pass
         
 if __name__ == "__main__":
     main()
