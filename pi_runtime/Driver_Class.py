@@ -56,7 +56,11 @@ class AF160:
         # === Connect to Driver === #
         self.connect()
         self.set_driver_configuration(self.throttle_channel)
-        if self.steering_channel: self.set_driver_configuration(self.steering_channel, rc_settings=(not enable_steering))
+        if self.steering_channel:
+            if self.enable_steering:
+                self.set_driver_configuration(self.steering_channel, rc_settings=False)
+            else:
+                self.set_driver_configuration(self.steering_channel, rc_settings=True)
         # === #
         
     # === Connection Management === #
