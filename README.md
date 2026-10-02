@@ -31,7 +31,6 @@ Clone repo:
 > ./install_service.sh
 
 ## Updating Process (Windows)
-*NOTE: Process likely to change in the future*
 1. Press `Windows + R`, then enter `ncpa.cpl`. This will open the network connections panel.
 2. Identify the network adapter that is connected to the internet. Right-click this adapter and select `Properties`.
 3. In the window that pops up, navigate to the `Sharing` tab. Use the dropdown to select the adapter that is connected to the system, and check the box above. (If no dropdown, might be that there is only one other adapter to use. Can proceed.)
