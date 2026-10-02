@@ -162,6 +162,7 @@ class AF160:
         """
         Scales motor input to fall within range of -255 to 255.
         """
+        
         input = max(-1.0, min(1.0, input))  # Clamp between -1.0 and +1.0
         return int(input * 255)
     # === #
@@ -215,7 +216,7 @@ class AF160:
             self._last_throttle_input_sent = self.throttle_input_scaled
         
         # Send steering command
-        if self.enable_steering:
+        if self.enable_steering and (steering_input is not None):
             self.steering_input_scaled = self._scale_input(steering_input)
             if self.steering_input_scaled != self._last_steering_input_sent:
                 self._send_command(channel = self.steering_channel, register = "t", operation = "s", value = self.steering_input_scaled, response_expected = False)
