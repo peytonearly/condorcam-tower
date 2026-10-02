@@ -57,10 +57,13 @@ class AF160:
         self.connect()
         self.set_driver_configuration(self.throttle_channel)
         if self.steering_channel:
+            print("yes 0")
             if self.enable_steering:
                 self.set_driver_configuration(self.steering_channel, rc_settings=False)
+                print("yes 1")
             else:
                 self.set_driver_configuration(self.steering_channel, rc_settings=True)
+                print("yes 2")
         # === #
         
     # === Connection Management === #
