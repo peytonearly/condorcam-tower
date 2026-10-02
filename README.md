@@ -39,8 +39,8 @@ Clone repo:
 <img src="images/Network-Sharing.png" width=400>
 
 4. Open a command prompt/powershell window. Enter `ping raspberrypi.local` to ensure the Raspberry Pi is accessible (i.e. returning pings).
-5. Enter `ssh pi@raspberrpi.local` to connect to the Pi. Password is `admin`.
-    - If this is the first time connecting to the Pi from this computer, it will ask you to save a fingerprint. Enter `Yes`.
+5. Enter `ssh pi@raspberrypi.local` to connect to the Pi. Password is `admin`.
+    - If this is the first time connecting to the Pi from this computer, it will ask you to confirm the connection. Enter `yes`.
 6. Once connected to the Pi, you'll need to set a temporary network configuration to allow the Pi to connect to the internet through your shared network (set up previously in step 3).\
 *This implementation will likely change in the future, but is required for now*.\
 Enter the following commands, in this order:
