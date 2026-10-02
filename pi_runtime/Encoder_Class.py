@@ -118,6 +118,11 @@ class E5_with_Pico_USB:
             self.logger.warning("USB serial exception during write. Disconnecting...")
             self.response = None
             self.disconnect()
+            
+        except AttributeError as e:
+            self.logger.warning(f"Attribute error: {e}")
+            self.response = None
+            return
     # === #
     
     # === Encoder Commands === #
