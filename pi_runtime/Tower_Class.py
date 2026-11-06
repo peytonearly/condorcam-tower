@@ -607,7 +607,7 @@ class ThrottleController:
                     self.min_hold_speed -= self._hold_speed_increment  # Decrease speed by increment
                     self._last_min_hold_tick = self._rc_now_tick
                 elif travel_rate < 0:  # Tower is moving down
-                    self.min_hold_speed += self._hold_speed_increment  # Increase speed by increment
+                    self.min_hold_speed += 2 * self._hold_speed_increment  # Increase speed by 2x increment
                     self._last_min_hold_tick = self._rc_now_tick
         
         self.active_zone = 1
