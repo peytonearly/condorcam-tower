@@ -16,6 +16,7 @@ class Constants:
     hold_timeout:          int   = 1_500_000  # Timeout threshold for position hold recalc in microseconds
     deadzone:              float = 0.3        # Deadzone (% of controller input)
     input_min:             float = 0.01       # Minimum input value that will be acted on
+    hold_speed_increment:  float = 1/85       # Minimum value that the minimum hold speed will be incremented
     speed_limiter_up_max:  float = 0.1        # Limits the speed at upper ends of tower travel (max slowdown)
     speed_limiter_up_min:  float = 0.5        # Limits the speed at upper ends of tower travel (min slowdown)
     speed_limiter_low_max: float = 0.2        # Limits the speed at lower ends of tower travel (max slowdown)
@@ -514,6 +515,7 @@ class ThrottleController:
     def __init__(self, constants: Constants):
         # === Constants === #
         self._ema_alpha             = constants.ema_alpha_throttle
+        self._hold_speed_increment  = constants.hold_speed_increment
         self._speed_limiter_up_max  = constants.speed_limiter_up_max
         self._speed_limiter_up_min  = constants.speed_limiter_up_min
         self._speed_limiter_low_max = constants.speed_limiter_low_max
@@ -599,10 +601,10 @@ class ThrottleController:
             # Only updates once every 2 seconds
             if pigpio.tickDiff(self._last_min_hold_tick, self._rc_now_tick) > self._hold_timeout:
                 if travel_rate > 0 and self.min_hold_speed > 0:  # Tower is moving up
-                    self.min_hold_speed -= 0.01  # Decrease speed by 1%
+                    self.min_hold_speed -= self._hold_speed_increment  # Decrease speed by increment
                     self._last_min_hold_tick = self._rc_now_tick
                 elif travel_rate < 0:  # Tower is moving down
-                    self.min_hold_speed += 0.01  # Increase speed by 1%
+                    self.min_hold_speed += self._hold_speed_increment  # Increase speed by increment
                     self._last_min_hold_tick = self._rc_now_tick
         
         self.active_zone = 1
