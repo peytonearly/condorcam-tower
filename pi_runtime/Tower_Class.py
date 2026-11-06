@@ -29,12 +29,12 @@ class Constants:
 class RcInputState:
     throttle_input_unsmooth: float  # Normalized [-1.0, 1.0]
     steering_input_unsmooth: float  # Normalized [-1.0, 1.0]
-    tower_active: bool
-    steering_direction: int
-    max_allowed_sled_speed: int
+    tower_active:            bool
+    steering_direction:      int
+    max_allowed_sled_speed:  int
     max_allowed_tower_speed: int
-    zero_button_tripped: bool
-    now_tick: int                   # time.monotonic current tick value
+    zero_button_tripped:     bool
+    now_tick:                int    # time.monotonic current tick value
 
 class RcInputReader:
     def __init__(self, pi: pigpio.pi, constants: Constants):
