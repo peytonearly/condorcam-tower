@@ -438,8 +438,9 @@ class RcInputReader:
         """
         pulse = median(self.channel4_dq)
         
-        if pulse > 1700: self._steering_direction = -1        # Position 3 - change direction
-        if 1200 < pulse < 1500: self._steering_direction = 1  # Position 1 - change direction
+        if pulse > 1700: self._steering_direction = -1        # Position 3 - negative direction
+        if 1500 < pulse < 1700: self._steering_direction = 0  # Position 2 - no motion
+        if 1200 < pulse < 1500: self._steering_direction = 1  # Position 1 - positive direction
     
     def _decode_channel5_input(self) -> None:
         """
