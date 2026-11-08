@@ -39,7 +39,7 @@ def initialize_tower(rig: RigController, driver: AF160, encoder: E5_with_Pico_US
     throttle_high_times = []
     
     # --- Step 1: Safety delay --- #
-    time.sleep(3)  # 3 second pause
+    time.sleep(1)  # 3 second pause
     throttle_high_times.append(rig.get_tower_throttle_high_time())
     
     # --- Step 2: Zero button verification --- #
