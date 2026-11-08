@@ -11,19 +11,20 @@ from pi_runtime.Event_Class import Zero_Button_Event
 
 @dataclass(frozen=True)
 class Constants:
-    controller_timeout:         int   = 1_000_000  # Timeout threshold in microseconds
-    input_timeout:              int   = 3_000_000  # Input timeout threshold in microseconds
-    hold_timeout:               int   = 1_500_000  # Timeout threshold for position hold recalc in microseconds
-    deadzone:                   float = 0.3        # Deadzone (% of controller input)
-    input_min:                  float = 0.01       # Minimum input value that will be acted on
-    hold_speed_increment:       float = 3/255      # Minimum value that the minimum hold speed will be incremented
-    speed_limiter_up_max_fast:  float = 0.05       # Limits the speed at upper ends of tower travel (max slowdown at fast speeds)
-    speed_limiter_up_max_slow:  float = 0.22       # Limits the speed at upper ends of tower travel (max slowdown at slow speeds)
-    speed_limiter_up_min:       float = 0.5        # Limits the speed at upper ends of tower travel (min slowdown)
-    speed_limiter_low_max:      float = 0.2        # Limits the speed at lower ends of tower travel (max slowdown)
-    speed_limiter_low_min:      float = 0.3        # Limits the speed at lower ends of tower travel (min slowdown)
-    ema_alpha_throttle:         float = 0.5        # Throttle smoothing factor. Lower numbers are smoother, higher numbers are more responsive
-    ema_alpha_steering:         float = 0.5        # Steering smoothing factor. Lower numbers are smoother, higher numbers are more resposnive
+    controller_timeout:          int   = 1_000_000  # Timeout threshold in microseconds
+    input_timeout:               int   = 3_000_000  # Input timeout threshold in microseconds
+    hold_timeout:                int   = 1_500_000  # Timeout threshold for position hold recalc in microseconds
+    deadzone:                    float = 0.3        # Deadzone (% of controller input)
+    input_min:                   float = 0.01       # Minimum input value that will be acted on
+    hold_speed_increment:        float = 3/255      # Minimum value that the minimum hold speed will be incremented
+    speed_limiter_up_max_fast:   float = 0.05       # Limits the speed at upper ends of tower travel (max slowdown at fast speeds)
+    speed_limiter_up_max_slow:   float = 0.22       # Limits the speed at upper ends of tower travel (max slowdown at slow speeds)
+    speed_limiter_up_min:        float = 0.5        # Limits the speed at upper ends of tower travel (min slowdown)
+    speed_limiter_low_max_fast:  float = 0.2        # Limits the speed at lower ends of tower travel (max slowdown at fast speeds)
+    speed_limiter_low_max_slow:  float = 0.28       # Limits the speed at lower ends of tower travel (max slowdown at slow speeds)
+    speed_limiter_low_min:       float = 0.3        # Limits the speed at lower ends of tower travel (min slowdown)
+    ema_alpha_throttle:          float = 0.5        # Throttle smoothing factor. Lower numbers are smoother, higher numbers are more responsive
+    ema_alpha_steering:          float = 0.5        # Steering smoothing factor. Lower numbers are smoother, higher numbers are more resposnive
 
 @dataclass
 class RcInputState:
@@ -516,14 +517,15 @@ class RcInputReader:
 class ThrottleController:
     def __init__(self, constants: Constants):
         # === Constants === #
-        self._ema_alpha                  = constants.ema_alpha_throttle
-        self._hold_speed_increment       = constants.hold_speed_increment
-        self._speed_limiter_up_max_fast  = constants.speed_limiter_up_max_fast
-        self._speed_limiter_up_max_slow  = constants.speed_limiter_up_max_slow
-        self._speed_limiter_up_min       = constants.speed_limiter_up_min
-        self._speed_limiter_low_max      = constants.speed_limiter_low_max
-        self._speed_limiter_low_min      = constants.speed_limiter_low_min
-        self._input_min                  = constants.input_min
+        self._ema_alpha                   = constants.ema_alpha_throttle
+        self._hold_speed_increment        = constants.hold_speed_increment
+        self._speed_limiter_up_max_fast   = constants.speed_limiter_up_max_fast
+        self._speed_limiter_up_max_slow   = constants.speed_limiter_up_max_slow
+        self._speed_limiter_up_min        = constants.speed_limiter_up_min
+        self._speed_limiter_low_max_fast  = constants.speed_limiter_low_max_fast
+        self._speed_limiter_low_max_slow  = constants.speed_limiter_low_max_slow
+        self._speed_limiter_low_min       = constants.speed_limiter_low_min
+        self._input_min                   = constants.input_min
         
         # Timing
         self._input_timeout = constants.input_timeout
@@ -535,8 +537,9 @@ class ThrottleController:
         self._enc_lower_region = None
         
         # Determined values
-        self._speed_limiter_up  = lambda e, t_max: self._speed_limiter_up_min + (((e - self._enc_upper_region) / (self._enc_max - self._enc_upper_region)) * (((self._speed_limiter_up_max_fast - self._speed_limiter_up_max_slow) * t_max) + self._speed_limiter_up_max_slow))
-        self._speed_limiter_low = lambda e: self._speed_limiter_low_max + (e * ((self._speed_limiter_low_min - self._speed_limiter_low_max) / self._enc_lower_region))
+        self._speed_limiter_up      = lambda e, t_max: self._speed_limiter_up_min + (((e - self._enc_upper_region) / (self._enc_max - self._enc_upper_region)) * (((self._speed_limiter_up_max_fast - self._speed_limiter_up_max_slow) * t_max) + self._speed_limiter_up_max_slow))
+        self._speed_limiter_low_max = lambda t_max: ((self._speed_limiter_low_max_fast - self._speed_limiter_low_max_slow) * t_max) + self._speed_limiter_low_max_slow
+        self._speed_limiter_low     = lambda e, t_max: self._speed_limiter_low_max(t_max) + (e * ((self._speed_limiter_low_min - self._speed_limiter_low_max(t_max)) / self._enc_lower_region))
         # === #
         
         # === Runtime Variables === #
@@ -626,7 +629,7 @@ class ThrottleController:
             return min(self.min_hold_speed + (self.throttle_input * self._max_allowed_tower_speed), 1.0)
         
         elif self.throttle_input < 0 and position > 0:  # Moving down, above zero
-            return self.min_hold_speed + (self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter_low(position))
+            return self.min_hold_speed + (self.throttle_input * self._max_allowed_tower_speed * self._speed_limiter_low(position, self._max_allowed_tower_speed))
         
         elif self.throttle_input < 0 and position < 0:  # Moving down, below zero - proceed with caution
             self.active_zone = -2
