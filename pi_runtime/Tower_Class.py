@@ -18,7 +18,7 @@ class Constants:
     input_min:                  float = 0.01       # Minimum input value that will be acted on
     hold_speed_increment:       float = 3/255      # Minimum value that the minimum hold speed will be incremented
     speed_limiter_up_max_fast:  float = 0.05       # Limits the speed at upper ends of tower travel (max slowdown at fast speeds)
-    speed_limiter_up_max_slow:  float = 0.2        # Limits the speed at upper ends of tower travel (max slowdown at slow speeds)
+    speed_limiter_up_max_slow:  float = 0.22       # Limits the speed at upper ends of tower travel (max slowdown at slow speeds)
     speed_limiter_up_min:       float = 0.5        # Limits the speed at upper ends of tower travel (min slowdown)
     speed_limiter_low_max:      float = 0.2        # Limits the speed at lower ends of tower travel (max slowdown)
     speed_limiter_low_min:      float = 0.3        # Limits the speed at lower ends of tower travel (min slowdown)
